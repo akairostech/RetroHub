@@ -222,7 +222,12 @@ class RetroServer extends ChangeNotifier {
           final dest = File(path);
           await dest.parent.create(recursive: true);
           final tmp = File('$path.retrohub_tmp');
-          await req.read().pipe(tmp.openWrite());
+          final sink = tmp.openWrite();
+          try {
+            await sink.addStream(req.read());
+          } finally {
+            await sink.close();
+          }
           // Guardamos la versión anterior antes de reemplazarla.
           await backupToHistory(dest, lay.history, toPosix(rel));
           await replaceFile(tmp, dest);
