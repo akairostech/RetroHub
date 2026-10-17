@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'core/emudeck.dart';
+import 'core/app_log.dart';
 import 'core/file_hash.dart';
 import 'core/library_scanner.dart';
 import 'core/models.dart';
@@ -77,6 +78,9 @@ class AppState extends ChangeNotifier {
       if (root != null) settings.emulationRoot = root;
     }
     if (root != null) layout = EmuLayout(root);
+    _attachLog();
+    appLog.info('RetroHub iniciado en ${Platform.operatingSystem} '
+        '(carpeta: ${layout?.root ?? 'sin configurar'})');
 
     ready = true;
     notifyListeners();
@@ -122,9 +126,20 @@ class AppState extends ChangeNotifier {
     super.dispose();
   }
 
+  void _attachLog() {
+    final lay = layout;
+    if (lay != null) {
+      appLog.attachDirectory(
+          '${lay.root}${Platform.pathSeparator}storage${Platform.pathSeparator}'
+          'retrohub${Platform.pathSeparator}logs',
+          settings.deviceName);
+    }
+  }
+
   Future<void> setEmulationRoot(String root) async {
     settings.emulationRoot = root;
     layout = EmuLayout(root);
+    _attachLog();
     notifyListeners();
     await rescan();
   }
@@ -142,8 +157,9 @@ class AppState extends ChangeNotifier {
       } else {
         library = await scanLibrary(lay);
       }
-    } catch (e) {
+    } catch (e, st) {
       scanError = '$e';
+      appLog.error('Fallo al escanear ${lay.roms}', e, st);
     }
     scanning = false;
     notifyListeners();
@@ -170,6 +186,7 @@ class AppState extends ChangeNotifier {
     } catch (e) {
       c.close();
       if (!silent) connectError = '$e';
+      appLog.warn('No se pudo conectar a ${address.host}:${address.port}', e);
     }
     connecting = false;
     notifyListeners();

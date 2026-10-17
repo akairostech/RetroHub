@@ -171,9 +171,8 @@ class _SyncRow extends StatelessWidget {
     };
     final stateIcon = switch (item.state) {
       SyncItemState.done => const Icon(Icons.check_circle_rounded, color: RetroColors.ok, size: 20),
-      SyncItemState.failed => Tooltip(
-          message: item.error ?? '',
-          child: const Icon(Icons.error_rounded, color: RetroColors.danger, size: 20)),
+      SyncItemState.failed =>
+        const Icon(Icons.error_rounded, color: RetroColors.danger, size: 20),
       SyncItemState.pending => null,
     };
 
@@ -205,6 +204,9 @@ class _SyncRow extends StatelessWidget {
                   ].join('   '),
                   style: const TextStyle(fontSize: 11, color: RetroColors.textDim),
                 ),
+                if (item.state == SyncItemState.failed && item.error != null)
+                  SelectableText(item.error!,
+                      style: const TextStyle(fontSize: 11, color: RetroColors.danger)),
               ],
             ),
           ),

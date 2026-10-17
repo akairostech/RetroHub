@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import '../core/app_log.dart';
 import '../core/emudeck.dart';
 import 'theme.dart';
 
@@ -177,6 +179,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              const _LogCard(),
+              const SizedBox(height: 12),
               const RetroCard(
                 child: Text(
                   'RetroHub 0.2 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
@@ -189,6 +193,95 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Registro de actividad y errores (también se guarda en un archivo).
+class _LogCard extends StatelessWidget {
+  const _LogCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: appLog,
+      builder: (context, _) {
+        final entries = appLog.entries;
+        return RetroCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Icon(Icons.receipt_long_rounded, color: RetroColors.accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    appLog.errorCount == 0
+                        ? 'Registro'
+                        : 'Registro · ${appLog.errorCount} errores',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: appLog.errorCount == 0 ? null : RetroColors.danger),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Copiar todo',
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: appLog.exportText()));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Registro copiado')));
+                    }
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Limpiar',
+                  onPressed: appLog.clear,
+                  icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+                ),
+              ]),
+              if (appLog.filePath != null)
+                SelectableText('Archivo: ${appLog.filePath}',
+                    style: const TextStyle(fontSize: 11, color: RetroColors.textDim)),
+              const SizedBox(height: 8),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 320),
+                decoration: BoxDecoration(
+                  color: RetroColors.bg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: entries.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text('Sin actividad todavía.',
+                            style: TextStyle(color: RetroColors.textDim)),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.all(10),
+                        itemCount: entries.length,
+                        itemBuilder: (context, i) {
+                          final e = entries[i];
+                          final color = switch (e.level) {
+                            LogLevel.error => RetroColors.danger,
+                            LogLevel.warn => RetroColors.warn,
+                            LogLevel.info => RetroColors.textDim,
+                          };
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: SelectableText(e.format(),
+                                style: TextStyle(
+                                    fontFamily: 'monospace', fontSize: 11, color: color)),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

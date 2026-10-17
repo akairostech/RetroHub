@@ -7,6 +7,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import '../core/emudeck.dart';
+import '../core/app_log.dart';
 import '../core/file_hash.dart';
 import '../core/file_tree.dart';
 import '../core/models.dart';
@@ -66,6 +67,7 @@ class RetroServer extends ChangeNotifier {
       _addLog('Servidor iniciado en el puerto $port');
     } catch (e) {
       error = 'No se pudo iniciar el servidor: $e';
+      appLog.error('No se pudo iniciar el servidor en el puerto $port', e);
       _http = null;
     }
     notifyListeners();
@@ -240,7 +242,10 @@ class RetroServer extends ChangeNotifier {
         }
       }
       return Response.notFound('No encontrado');
-    } catch (e) {
+    } catch (e, st) {
+      appLog.error('Servidor: ${req.method} /${req.url.path} '
+          '${req.url.queryParameters['path'] ?? ''} falló', e, st);
+      _addLog('ERROR ${req.method} /${req.url.path}: $e');
       return _bad('$e', 500);
     }
   }

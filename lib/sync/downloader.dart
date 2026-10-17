@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/emudeck.dart';
+import '../core/app_log.dart';
 import '../core/models.dart';
 import '../net/client.dart';
 
@@ -151,9 +152,10 @@ class DownloadManager extends ChangeNotifier {
         task.status = DownloadStatus.done;
       } on DownloadCancelled {
         task.status = DownloadStatus.cancelled;
-      } catch (e) {
+      } catch (e, st) {
         task.status = DownloadStatus.failed;
         task.error = '$e';
+        appLog.error('Descarga fallida: ${task.label}', e, st);
       }
       notifyListeners();
     });

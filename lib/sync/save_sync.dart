@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/emudeck.dart';
+import '../core/app_log.dart';
 import '../core/file_hash.dart';
 import '../core/file_tree.dart';
 import '../core/models.dart';
@@ -137,9 +138,14 @@ class SaveSync extends ChangeNotifier {
       await _saveBase(_serverKey(client), base);
       plan = SyncPlan(items, unchanged);
       status = null;
-    } catch (e) {
-      error = '$e';
+      appLog.info('Partidas analizadas con ${client.server.name}: '
+          '${plan!.uploads.length} subir, ${plan!.downloads.length} bajar, '
+          '${plan!.conflicts.length} conflictos, $unchanged iguales '
+          '(${local.length} locales, ${remote.length} en el servidor)');
+    } catch (e, st) {
+      error = 'No se pudo analizar: $e';
       status = null;
+      appLog.error('Fallo al analizar partidas en ${layout.saves}', e, st);
     }
     busy = false;
     notifyListeners();
@@ -188,9 +194,13 @@ class SaveSync extends ChangeNotifier {
           base[item.path] = await hashes.sha1Of(file);
         }
         item.state = SyncItemState.done;
-      } catch (e) {
+      } catch (e, st) {
         item.state = SyncItemState.failed;
         item.error = '$e';
+        appLog.error(
+            'No se pudo ${item.action == SyncAction.upload ? 'subir' : 'bajar'} ${item.path}',
+            e,
+            st);
       }
       // Guardamos la base tras cada archivo por si se corta la conexión.
       await _saveBase(_serverKey(client), base);
@@ -198,7 +208,8 @@ class SaveSync extends ChangeNotifier {
     final failed = todo.where((i) => i.state == SyncItemState.failed).length;
     status = failed == 0
         ? 'Listo: ${todo.length} archivos sincronizados'
-        : 'Terminado con $failed errores';
+        : 'Terminado con $failed errores (detalles en Ajustes → Registro)';
+    appLog.info('Sincronización terminada: ${todo.length - failed} correctos, $failed con error');
     busy = false;
     notifyListeners();
   }
