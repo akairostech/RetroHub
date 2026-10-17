@@ -38,7 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _pick() async {
-    final dir = await FilePicker.platform.getDirectoryPath(
+    final dir = await FilePicker.getDirectoryPath(
         dialogTitle: 'Elige tu carpeta Emulation');
     if (dir != null) {
       _root.text = dir;
