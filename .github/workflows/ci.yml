@@ -24,7 +24,16 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
-      - run: flutter test --reporter github
+      - name: flutter test
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter test --reporter expanded 2>&1 | tee test_output.txt; then
+            # Publica el detalle del fallo como anotación (visible en la API).
+            body=$(grep -B2 -A40 -- '\[E\]' test_output.txt | head -120 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+            echo "::error title=Pruebas fallidas::${body}"
+            exit 1
+          fi
 
   android:
     name: APK de Android
