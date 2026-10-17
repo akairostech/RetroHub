@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/models.dart';
@@ -74,7 +75,14 @@ class GeneratedCover extends StatelessWidget {
         ),
       ),
       padding: const EdgeInsets.all(12),
-      child: Column(
+      child: Stack(children: [
+        Positioned(
+          right: -18,
+          bottom: 30,
+          child: PlatformIcon(
+              platform: game.platform, size: 110, color: Colors.white.withAlpha(40)),
+        ),
+        Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(info.shortName.toUpperCase(),
@@ -90,6 +98,25 @@ class GeneratedCover extends StatelessWidget {
           ),
         ],
       ),
+      ]),
+    );
+  }
+}
+
+/// Ícono de la consola, coloreado.
+class PlatformIcon extends StatelessWidget {
+  final String platform;
+  final double size;
+  final Color? color;
+  const PlatformIcon({super.key, required this.platform, this.size = 20, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      platformIconAsset(platform),
+      width: size,
+      height: size,
+      colorFilter: ColorFilter.mode(color ?? Colors.white, BlendMode.srcIn),
     );
   }
 }
@@ -108,8 +135,12 @@ class PlatformBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: info.color.withAlpha(140)),
       ),
-      child: Text(info.shortName,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        PlatformIcon(platform: platform, size: 11),
+        const SizedBox(width: 4),
+        Text(info.shortName,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+      ]),
     );
   }
 }
@@ -343,6 +374,10 @@ class _GameBrowserState extends State<GameBrowser> {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: ChoiceChip(
         selected: selected,
+        avatar: id == null
+            ? const Icon(Icons.apps_rounded, size: 16)
+            : PlatformIcon(platform: id, size: 16, color: color),
+        showCheckmark: false,
         label: Text('$label · $count'),
         selectedColor: color.withAlpha(90),
         onSelected: (_) => setState(() => _platform = id),
@@ -383,6 +418,19 @@ class _PlatformList extends StatelessWidget {
   }
 
   Widget _tile(String name, String sub, String? id, int count, Color color) {
+    final iconBox = Container(
+      width: 34,
+      height: 34,
+      padding: EdgeInsets.all(id == null ? 2 : 7),
+      decoration: BoxDecoration(
+        color: color.withAlpha(selected == id ? 90 : 45),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: color.withAlpha(120)),
+      ),
+      child: id == null
+          ? Image.asset('assets/branding/icon.png')
+          : PlatformIcon(platform: id, color: Colors.white),
+    );
     final sel = selected == id;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -396,12 +444,7 @@ class _PlatformList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             child: Row(
               children: [
-                Container(
-                  width: 4,
-                  height: 30,
-                  decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(2)),
-                ),
+                iconBox,
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

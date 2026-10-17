@@ -18,16 +18,15 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-## Primera vez
+## Desarrollo
 
-Requisitos en Windows: Flutter, Visual Studio con "Desarrollo para el escritorio con C++" (incluyendo *C++ CMake tools*) y el Modo de desarrollador de Windows activado.
+Requisitos en Windows: Flutter, Visual Studio con "Desarrollo para el escritorio con C++" (incluyendo *C++ CMake tools*), Android Studio (para el SDK de Android) y el Modo de desarrollador de Windows activado.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup.ps1   # solo la primera vez
-.\dev.ps1                                              # analiza, prueba y abre la app
+.\dev.ps1   # trae los cambios de GitHub, analiza, prueba y abre la app
 ```
 
-Para Android: conecta el teléfono con depuración USB y ejecuta `flutter run`. En la app, concede "Acceso a todos los archivos" y elige tu carpeta Emulation.
+En Android: conecta el teléfono con depuración USB y ejecuta `flutter run`. En la app, concede "Acceso a todos los archivos" y elige tu carpeta Emulation.
 
 ## Estructura del código
 
@@ -51,3 +50,9 @@ Todas las rutas requieren el PIN en la cabecera `x-retrohub-pin` o en `?pin=`.
 | GET | `/api/tree?area=roms\|bios\|saves&path=&hash=1` | lista de archivos (con SHA-1 opcional) |
 | GET | `/api/file?area=&path=` | descarga |
 | PUT | `/api/file?area=saves&path=` | subida (solo saves) |
+
+## Créditos
+
+- Íconos de PlayStation, Sega y Atari: [Simple Icons](https://simpleicons.org) (CC0 1.0). Las marcas pertenecen a sus dueños.
+- Íconos de Switch, Wii, Wii U, Game Boy, Xbox y mandos: [Material Design Icons](https://pictogrammers.com/library/mdi/) (Pictogrammers Free License).
+- Ícono de la app: diseño original de RetroHub.

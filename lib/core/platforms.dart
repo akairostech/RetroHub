@@ -144,3 +144,59 @@ int comparePlatforms(String a, String b) {
   if (y != 0) return y;
   return pa.name.compareTo(pb.name);
 }
+
+/// Ícono (SVG en assets/consoles) para cada plataforma.
+/// Logos de Simple Icons (CC0) y pictogramas de Material Design Icons
+/// (Pictogrammers Free License). Ver README → Créditos.
+String platformIconAsset(String id) {
+  const byId = {
+    'psx': 'playstation',
+    'ps2': 'playstation2',
+    'ps3': 'playstation3',
+    'ps4': 'playstation4',
+    'psp': 'psp',
+    'psvita': 'psvita',
+    'switch': 'switch',
+    'wii': 'wii',
+    'primehack': 'wii',
+    'wiiu': 'wiiu',
+    'gb': 'handheld',
+    'gbc': 'handheld',
+    'gba': 'handheld',
+    'nds': 'handheld',
+    'n3ds': 'handheld',
+    'virtualboy': 'handheld',
+    'gamegear': 'handheld',
+    'ngpc': 'handheld',
+    'wonderswancolor': 'handheld',
+    'atarilynx': 'handheld',
+    'nes': 'classic_pad',
+    'famicom': 'classic_pad',
+    'snes': 'classic_pad',
+    'sfc': 'classic_pad',
+    'pcengine': 'classic_pad',
+    'tg16': 'classic_pad',
+    'n64': 'modern_pad',
+    'gc': 'round_pad',
+    'xbox': 'xbox',
+    'xbox360': 'xbox',
+    'neogeo': 'pacman',
+    '3do': 'disc',
+    'scummvm': 'floppy',
+    'dos': 'floppy',
+    'pc': 'floppy',
+  };
+  const byMaker = {
+    'Sony': 'playstation',
+    'Sega': 'sega',
+    'Atari': 'atari',
+    'Microsoft': 'xbox',
+    'Arcade': 'arcade',
+    'Sammy': 'arcade',
+    'SNK': 'pacman',
+    'PC': 'floppy',
+    'Nintendo': 'classic_pad',
+  };
+  final name = byId[id] ?? byMaker[platformInfo(id).maker] ?? 'generic';
+  return 'assets/consoles/$name.svg';
+}

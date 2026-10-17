@@ -55,6 +55,8 @@ class _HomeShellState extends State<HomeShell> {
         body: RetroBackground(
           child: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Image(image: AssetImage('assets/branding/icon.png'), width: 120, height: 120),
+              SizedBox(height: 16),
               RetroLogo(size: 40),
               SizedBox(height: 24),
               CircularProgressIndicator(),
@@ -87,9 +89,12 @@ class _HomeShellState extends State<HomeShell> {
                 leading: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: extended
-                      ? const RetroLogo(size: 24)
-                      : const Icon(Icons.sports_esports_rounded,
-                          size: 30, color: RetroColors.accent),
+                      ? Row(mainAxisSize: MainAxisSize.min, children: [
+                          Image.asset('assets/branding/icon.png', width: 34, height: 34),
+                          const SizedBox(width: 10),
+                          const RetroLogo(size: 22),
+                        ])
+                      : Image.asset('assets/branding/icon.png', width: 40, height: 40),
                 ),
                 trailing: Padding(
                   padding: const EdgeInsets.only(top: 24),

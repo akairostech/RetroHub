@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "com.rajiv" "\0"
             VALUE "FileDescription", "RetroHub" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "retro_hub" "\0"
+            VALUE "InternalName", "RetroHub" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.rajiv. All rights reserved." "\0"
-            VALUE "OriginalFilename", "retro_hub.exe" "\0"
+            VALUE "OriginalFilename", "RetroHub.exe" "\0"
             VALUE "ProductName", "RetroHub" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
