@@ -12,12 +12,9 @@ Gestor de ROMs retro para Windows, Linux y Android, construido con Flutter.
 
 ## Descargar
 
-Cada push a `main` genera el APK de Android y el .zip de Windows en la pestaña **Actions** (sección *Artifacts* del run). Al crear un tag `v*` se publican en **Releases**:
+La última versión para Android (`.apk`), Windows (`.zip`) y Linux/SteamOS (`.tar.gz`) está siempre en **[Releases](https://github.com/akairostech/RetroHub/releases/latest)**.
 
-```powershell
-git tag v0.2.0
-git push origin v0.2.0
-```
+Para publicar una versión nueva: en GitHub, *Releases → Draft a new release*, crea una etiqueta como `v0.4.0` y pulsa *Publish*. GitHub Actions compila y adjunta los tres ejecutables en unos 15 minutos.
 
 ## Instalar en SteamOS / Linux
 

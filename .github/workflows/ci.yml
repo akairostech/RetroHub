@@ -1,13 +1,18 @@
 name: CI
 
-# Revisa el código en cada push y genera el APK de Android y el .zip de
-# Windows. Al crear un tag "v*" (por ejemplo v0.2.0) publica un Release.
+# Revisa el código en cada push y genera el APK de Android, el .zip de
+# Windows y el .tar.gz de Linux. Al publicar un Release (o crear un tag
+# "v*") adjunta los tres ejecutables al Release.
 on:
   push:
     branches: [main]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+  # Al publicar un Release (en la web o por la API) se compilan y adjuntan
+  # los ejecutables automáticamente.
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -130,7 +135,7 @@ jobs:
 
   release:
     name: Publicar Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
     needs: [android, windows, linux]
     runs-on: ubuntu-latest
     steps:
@@ -143,4 +148,5 @@ jobs:
             RetroHub-android.apk
             RetroHub-windows.zip
             RetroHub-linux-x64.tar.gz
+          tag_name: ${{ github.event.release.tag_name || github.ref_name }}
           generate_release_notes: true
