@@ -15,6 +15,9 @@ class HashCache {
 
   HashCache._(this._file, this._entries);
 
+  /// Caché sin persistencia previa (útil en pruebas).
+  HashCache.at(File file) : this._(file, {});
+
   static Future<HashCache> open() async {
     final dir = await getApplicationSupportDirectory();
     final file = File(p.join(dir.path, 'hash_cache.json'));

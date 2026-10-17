@@ -1,0 +1,83 @@
+name: CI
+
+# Revisa el código en cada push y genera el APK de Android y el .zip de
+# Windows. Al crear un tag "v*" (por ejemplo v0.2.0) publica un Release.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Análisis y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+
+  android:
+    name: APK de Android
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter build apk --release
+      - run: mv build/app/outputs/flutter-apk/app-release.apk RetroHub-android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RetroHub-android
+          path: RetroHub-android.apk
+
+  windows:
+    name: App de Windows
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter build windows --release
+      - name: Empaquetar
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath RetroHub-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RetroHub-windows
+          path: RetroHub-windows.zip
+
+  release:
+    name: Publicar Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            RetroHub-android.apk
+            RetroHub-windows.zip
+          generate_release_notes: true

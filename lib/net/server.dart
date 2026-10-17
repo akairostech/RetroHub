@@ -27,6 +27,7 @@ class RetroServer extends ChangeNotifier {
   final Map<String, List<Game>> Function() library;
   final String Function() pin;
   final String Function() deviceName;
+  final String Function() instanceId;
   final HashCache hashes;
 
   RetroServer({
@@ -34,6 +35,7 @@ class RetroServer extends ChangeNotifier {
     required this.library,
     required this.pin,
     required this.deviceName,
+    required this.instanceId,
     required this.hashes,
   });
 
@@ -56,7 +58,8 @@ class RetroServer extends ChangeNotifier {
       _http = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
       _http!.autoCompress = false;
       try {
-        await _discovery.start(name: deviceName(), httpPort: port);
+        await _discovery.start(
+            name: deviceName(), httpPort: port, instanceId: instanceId());
       } catch (e) {
         _addLog('Aviso: descubrimiento automático no disponible ($e)');
       }
@@ -131,6 +134,7 @@ class RetroServer extends ChangeNotifier {
             'app': kAppName,
             'v': kApiVersion,
             'name': deviceName(),
+            'id': instanceId(),
             'platforms': lib.length,
             'games': lib.values.fold<int>(0, (s, g) => s + g.length),
           });
@@ -188,10 +192,24 @@ class RetroServer extends ChangeNotifier {
           final f = File(path);
           if (!await f.exists()) return Response.notFound('No existe');
           final st = await f.stat();
-          return Response.ok(f.openRead(), headers: {
+          final common = {
             'content-type': 'application/octet-stream',
-            'content-length': '${st.size}',
+            'accept-ranges': 'bytes',
             kMtimeHeader: '${st.modified.millisecondsSinceEpoch}',
+          };
+          // Reanudar descargas: "Range: bytes=N-".
+          final range = RegExp(r'^bytes=(\d+)-$').firstMatch(req.headers['range'] ?? '');
+          final start = range == null ? 0 : int.parse(range.group(1)!);
+          if (start > 0 && start < st.size) {
+            return Response(206, body: f.openRead(start), headers: {
+              ...common,
+              'content-length': '${st.size - start}',
+              'content-range': 'bytes $start-${st.size - 1}/${st.size}',
+            });
+          }
+          return Response.ok(f.openRead(), headers: {
+            ...common,
+            'content-length': '${st.size}',
           });
 
         }

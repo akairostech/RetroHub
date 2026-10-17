@@ -32,6 +32,16 @@ class SavesPage extends StatelessWidget {
       );
     }
 
+    if (app.connectedToSelf) {
+      return EmptyState(
+        icon: Icons.devices_rounded,
+        title: 'Conectado a este mismo equipo',
+        message: 'Para sincronizar partidas, conéctate desde otro dispositivo '
+            '(por ejemplo tu teléfono) al servidor de este PC.',
+        action: OutlinedButton(onPressed: onOpenRemote, child: const Text('Ir a Descargar')),
+      );
+    }
+
     final sync = app.saveSync;
     return ListenableBuilder(
       listenable: sync,

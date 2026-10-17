@@ -13,8 +13,14 @@ class ApiException implements Exception {
   final String message;
   ApiException(this.status, this.message);
   @override
-  String toString() =>
-      status == 403 ? 'PIN incorrecto' : 'Error del servidor ($status): $message';
+  String toString() => switch (status) {
+        403 => 'PIN incorrecto',
+        0 => message,
+        _ => 'Error del servidor ($status): $message',
+      };
+
+  /// Errores que no tiene sentido reintentar.
+  bool get isFatal => status == 403 || status == 404 || status == 400;
 }
 
 /// Cliente para hablar con otro dispositivo que corre RetroHub en modo servidor.
@@ -80,18 +86,26 @@ class RetroClient {
     void Function(int received, int total)? onProgress,
     bool Function()? isCancelled,
   }) async {
+    await dest.parent.create(recursive: true);
+    // Si quedó un archivo parcial de un intento anterior, seguimos desde ahí.
+    final tmp = File('${dest.path}.retrohub_tmp');
+    final already = await tmp.exists() ? await tmp.length() : 0;
+
     final req = http.Request('GET', _uri('/api/file', {'area': area, 'path': relPath}))
       ..headers.addAll(headers);
+    if (already > 0) req.headers['range'] = 'bytes=$already-';
     final res = await _http.send(req);
-    if (res.statusCode != 200) {
+    if (res.statusCode != 200 && res.statusCode != 206) {
       final body = await res.stream.bytesToString();
       throw ApiException(res.statusCode, body);
     }
-    final total = res.contentLength ?? -1;
-    await dest.parent.create(recursive: true);
-    final tmp = File('${dest.path}.retrohub_tmp');
-    final sink = tmp.openWrite();
-    var received = 0;
+    final resumed = res.statusCode == 206;
+    var received = resumed ? already : 0;
+    final total = resumed
+        ? int.tryParse(res.headers['content-range']?.split('/').last ?? '') ?? -1
+        : res.contentLength ?? -1;
+    final sink = tmp.openWrite(mode: resumed ? FileMode.append : FileMode.write);
+    onProgress?.call(received, total);
     try {
       await for (final chunk in res.stream) {
         if (isCancelled?.call() == true) throw const _Cancelled();
@@ -102,10 +116,13 @@ class RetroClient {
       await sink.flush();
       await sink.close();
     } catch (e) {
+      // Conservamos el archivo parcial para poder reanudar después.
       await sink.close();
-      if (await tmp.exists()) await tmp.delete();
       if (e is _Cancelled) throw const DownloadCancelled();
       rethrow;
+    }
+    if (total >= 0 && await tmp.length() != total) {
+      throw ApiException(0, 'Descarga incompleta, se reanudará al reintentar');
     }
     await replaceFile(tmp, dest);
     final mtime = int.tryParse(res.headers[kMtimeHeader] ?? '');

@@ -15,7 +15,10 @@ class ServerAddress {
   final String name;
   final String host;
   final int port;
-  const ServerAddress(this.name, this.host, this.port);
+
+  /// Identificador de instalación (si el servidor lo anunció).
+  final String? id;
+  const ServerAddress(this.name, this.host, this.port, {this.id});
 
   String get baseUrl => 'http://$host:$port';
 

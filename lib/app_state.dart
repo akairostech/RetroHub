@@ -34,6 +34,9 @@ class AppState extends ChangeNotifier {
   RetroClient? client;
   Map<String, List<Game>> remoteLibrary = {};
   bool connecting = false;
+
+  /// true si el servidor al que nos conectamos es esta misma instalación.
+  bool connectedToSelf = false;
   String? connectError;
 
   // Android: acceso a todos los archivos
@@ -49,6 +52,7 @@ class AppState extends ChangeNotifier {
       library: () => library,
       pin: () => settings.serverPin,
       deviceName: () => settings.deviceName,
+      instanceId: () => settings.instanceId,
       hashes: hashes,
     );
     saveSync = SaveSync(hashes);
@@ -159,6 +163,7 @@ class AppState extends ChangeNotifier {
           info['name'] as String? ?? address.name, address.host, address.port);
       client?.close();
       client = RetroClient(named, pin);
+      connectedToSelf = info['id'] == settings.instanceId;
       c.close();
       settings.rememberServer(address.host, address.port, pin);
       remoteLibrary = await client!.library();
@@ -184,6 +189,7 @@ class AppState extends ChangeNotifier {
   void disconnect() {
     client?.close();
     client = null;
+    connectedToSelf = false;
     remoteLibrary = {};
     notifyListeners();
   }

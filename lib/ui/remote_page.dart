@@ -38,6 +38,23 @@ class RemotePage extends StatelessWidget {
               ),
             ],
           ),
+          if (app.connectedToSelf)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: RetroCard(
+                borderColor: RetroColors.warn,
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(children: [
+                  Icon(Icons.info_outline_rounded, color: RetroColors.warn),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                        'Estás conectado a este mismo equipo. Sirve para probar, '
+                        'pero las descargas y la sincronización no harán nada útil.'),
+                  ),
+                ]),
+              ),
+            ),
           const TabBar(
             tabAlignment: TabAlignment.start,
             isScrollable: true,
@@ -270,8 +287,8 @@ class DownloadsPanel extends StatelessWidget {
       DownloadStatus.queued => (Icons.schedule_rounded, RetroColors.textDim, 'En cola'),
       DownloadStatus.running => (
           Icons.downloading_rounded,
-          RetroColors.neon,
-          '${formatBytes(t.received)} / ${formatBytes(t.total)}'
+          t.retryInfo == null ? RetroColors.neon : RetroColors.warn,
+          t.retryInfo ?? '${formatBytes(t.received)} / ${formatBytes(t.total)}'
         ),
       DownloadStatus.done => (Icons.check_circle_rounded, RetroColors.ok, 'Completado'),
       DownloadStatus.failed => (Icons.error_rounded, RetroColors.danger, t.error ?? 'Error'),
@@ -448,7 +465,9 @@ class _ConnectPanelState extends State<ConnectPanel> {
                         leading: const CircleAvatar(
                             backgroundColor: RetroColors.surfaceHigh,
                             child: Icon(Icons.dns_rounded, color: RetroColors.accent)),
-                        title: Text(s.name),
+                        title: Text(s.id != null && s.id == app.settings.instanceId
+                            ? '${s.name} (este equipo)'
+                            : s.name),
                         subtitle: Text('${s.host}:${s.port}'),
                         trailing: FilledButton(
                           onPressed: app.connecting ? null : () => _connectDiscovered(s),

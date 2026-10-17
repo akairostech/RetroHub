@@ -17,6 +17,7 @@ class DownloadTask {
   int received = 0;
   int total = 0;
   String? error;
+  String? retryInfo;
   bool cancelRequested = false;
 
   DownloadTask(this.id, this.label, this.subtitle);
@@ -98,14 +99,37 @@ class DownloadManager extends ChangeNotifier {
         notifyListeners();
         continue;
       }
-      await client.download(area, rel, dest,
-          isCancelled: () => task.cancelRequested, onProgress: (r, _) {
-        task.received = base + r;
-        _throttledNotify();
-      });
+      // Hasta 4 intentos; cada uno continúa desde el archivo parcial.
+      for (var attempt = 1;; attempt++) {
+        try {
+          await client.download(area, rel, dest,
+              isCancelled: () => task.cancelRequested, onProgress: (r, _) {
+            task.received = base + r;
+            _throttledNotify();
+          });
+          break;
+        } on DownloadCancelled {
+          rethrow;
+        } on ApiException catch (e) {
+          if (e.isFatal || attempt >= 4) rethrow;
+          await _waitBeforeRetry(task, attempt);
+        } catch (_) {
+          // Wi-Fi caído, servidor reiniciado, etc.
+          if (attempt >= 4) rethrow;
+          await _waitBeforeRetry(task, attempt);
+        }
+      }
+      task.retryInfo = null;
       base += size;
     }
     task.received = task.total;
+  }
+
+  Future<void> _waitBeforeRetry(DownloadTask task, int attempt) async {
+    final seconds = [3, 8, 20][attempt - 1];
+    task.retryInfo = 'Conexión perdida, reintentando en $seconds s (intento ${attempt + 1} de 4)';
+    notifyListeners();
+    await Future.delayed(Duration(seconds: seconds));
   }
 
   DateTime _lastNotify = DateTime.fromMillisecondsSinceEpoch(0);

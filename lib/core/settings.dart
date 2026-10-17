@@ -13,11 +13,20 @@ class AppSettings {
     if (prefs.getString('serverPin') == null) {
       await prefs.setString('serverPin', generatePin());
     }
+    if (prefs.getString('instanceId') == null) {
+      final r = Random.secure();
+      final id = List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+      await prefs.setString('instanceId', id);
+    }
     return s;
   }
 
   static String generatePin() =>
       (Random.secure().nextInt(9000) + 1000).toString();
+
+  /// Identificador único de esta instalación (para detectar que un
+  /// cliente se conectó a su propio servidor).
+  String get instanceId => _prefs.getString('instanceId') ?? '';
 
   String? get emulationRoot => _prefs.getString('emulationRoot');
   set emulationRoot(String? v) => v == null

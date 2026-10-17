@@ -9,7 +9,8 @@ import 'protocol.dart';
 class DiscoveryResponder {
   RawDatagramSocket? _socket;
 
-  Future<void> start({required String name, required int httpPort}) async {
+  Future<void> start(
+      {required String name, required int httpPort, required String instanceId}) async {
     await stop();
     final socket = await RawDatagramSocket.bind(
         InternetAddress.anyIPv4, kDiscoveryPort,
@@ -26,6 +27,7 @@ class DiscoveryResponder {
         'v': kApiVersion,
         'name': name,
         'port': httpPort,
+        'id': instanceId,
       }));
       socket.send(reply, dg.address, dg.port);
     });
@@ -55,6 +57,7 @@ Future<List<ServerAddress>> discoverServers(
         j['name'] as String? ?? dg.address.address,
         dg.address.address,
         (j['port'] as num).toInt(),
+        id: j['id'] as String?,
       ));
     } catch (_) {}
   });

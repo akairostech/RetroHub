@@ -179,7 +179,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 12),
               const RetroCard(
                 child: Text(
-                  'RetroHub 0.1 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
+                  'RetroHub 0.2 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
                   'Las partidas (saves) se sincronizan en ambos sentidos y nunca se borran: '
                   'antes de reemplazar una se guarda una copia en saves/.retrohub_history.',
                   style: TextStyle(color: RetroColors.textDim, fontSize: 12),
