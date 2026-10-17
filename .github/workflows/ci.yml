@@ -23,7 +23,15 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter analyze --no-fatal-infos
+      - name: flutter analyze
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter analyze --no-fatal-infos 2>&1 | tee analyze_output.txt; then
+            body=$(grep -E 'error|warning' analyze_output.txt | head -40 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+            echo "::error title=flutter analyze::${body}"
+            exit 1
+          fi
       - name: flutter test
         shell: bash
         run: |
