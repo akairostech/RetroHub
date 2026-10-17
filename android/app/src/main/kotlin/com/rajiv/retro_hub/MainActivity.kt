@@ -20,7 +20,7 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Permite pasar rutas file:// a los emuladores (como hace ES-DE).
+        // Permite pasar rutas file:// a los emuladores.
         StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
     }
 

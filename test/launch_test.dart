@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:retro_hub/core/library_tools.dart';
 import 'package:retro_hub/core/models.dart';
-import 'package:retro_hub/launch/esde.dart';
+import 'package:retro_hub/launch/launch_profile.dart';
 
 void main() {
   test('divide comandos respetando comillas', () {
@@ -12,9 +12,9 @@ void main() {
         ['C:\\a b\\ra.exe', '-L', 'C:\\c d\\core.dll', 'x y.sfc']);
   });
 
-  test('ES-DE: elige el emulador del gamelist y expande variables', () async {
-    final root = await Directory.systemTemp.createTemp('esde');
-    final es = p.join(root.path, 'ES-DE-app');
+  test('perfil de lanzamiento: respeta el emulador elegido y expande variables', () async {
+    final root = await Directory.systemTemp.createTemp('profile');
+    final es = p.join(root.path, 'frontend-app');
     final emus = p.join(root.path, 'Emulators');
     await File(p.join(emus, 'Dolphin-x64', 'Dolphin.exe')).create(recursive: true);
     await File(p.join(emus, 'RetroArch', 'retroarch.exe')).create(recursive: true);
@@ -24,8 +24,8 @@ void main() {
     await File(p.join(userDir, 'gamelists', 'gc', 'gamelist.xml')).writeAsString(
         '<alternativeEmulator>\n\t<label>Dolphin (Standalone)</label>\n</alternativeEmulator>\n<gameList />');
 
-    final cfg = EsdeConfig.parse(
-      esPath: es,
+    final cfg = LaunchProfile.parse(
+      installDir: es,
       userDir: userDir,
       romPath: p.join(root.path, 'roms'),
       systemsXml: [

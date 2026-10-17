@@ -18,7 +18,7 @@ class FavoriteIntent extends Intent {
   const FavoriteIntent();
 }
 
-/// URL de respaldo en libretro-thumbnails (si ES-DE no tiene la imagen).
+/// URL de respaldo en libretro-thumbnails (si no hay imagen local).
 String? libretroCoverUrl(Game g) {
   final sys = platformInfo(g.platform).libretro;
   if (sys == null || g.isFolder) return null;

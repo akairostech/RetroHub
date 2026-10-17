@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../core/app_log.dart';
 import '../core/file_hash.dart';
 import '../core/file_tree.dart';
@@ -93,7 +93,7 @@ class SaveSync extends ChangeNotifier {
 
   String _serverKey(RetroClient c) => '${c.server.name}@${c.server.host}';
 
-  Future<void> analyze(RetroClient client, EmuLayout layout) async {
+  Future<void> analyze(RetroClient client, LibraryLayout layout) async {
     busy = true;
     error = null;
     plan = null;
@@ -164,7 +164,7 @@ class SaveSync extends ChangeNotifier {
   }
 
   /// Aplica el plan (los conflictos sin resolver se saltan).
-  Future<void> apply(RetroClient client, EmuLayout layout) async {
+  Future<void> apply(RetroClient client, LibraryLayout layout) async {
     final current = plan;
     if (current == null) return;
     busy = true;

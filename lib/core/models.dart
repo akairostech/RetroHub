@@ -14,7 +14,7 @@ class Game {
   /// Ruta local completa (null si el juego es remoto).
   final String? localPath;
 
-  /// Carátula local (archivo de ES-DE) si existe.
+  /// Carátula local (storage/downloaded_media) si existe.
   final String? coverFile;
 
   /// Carátula remota servida por otro dispositivo.
@@ -38,7 +38,7 @@ class Game {
 
   String get key => '$platform/$fileName';
 
-  /// Nombre base usado por ES-DE para buscar media.
+  /// Nombre base usado para buscar las imágenes del juego.
   String get mediaName => isFolder ? fileName : p.basenameWithoutExtension(fileName);
 
   Map<String, dynamic> toJson() => {

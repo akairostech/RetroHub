@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_hub/core/emudeck.dart';
+import 'package:retro_hub/core/layout.dart';
 import 'package:retro_hub/core/file_hash.dart';
 import 'package:retro_hub/net/client.dart';
 import 'package:retro_hub/net/protocol.dart';
@@ -22,7 +22,7 @@ void main() {
     await File(p.join(root.path, 'roms', 'snes', 'game.sfc')).writeAsBytes(bytes);
 
     server = RetroServer(
-      layout: () => EmuLayout(root.path),
+      layout: () => LibraryLayout(root.path),
       library: () => {},
       pin: () => '1234',
       deviceName: () => 'test',

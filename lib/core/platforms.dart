@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Información visual de cada plataforma (carpeta de EmuDeck / ES-DE).
+/// Información visual de cada plataforma (carpeta dentro de roms/).
 class PlatformInfo {
   final String id;
   final String name;

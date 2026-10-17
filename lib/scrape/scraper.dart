@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../core/app_log.dart';
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../core/models.dart';
 import '../core/platforms.dart';
 import 'igdb.dart';
@@ -20,9 +20,9 @@ class ScrapeOptions {
 }
 
 /// Descarga carátulas, capturas y metadatos para los juegos de la biblioteca.
-/// Las imágenes se guardan con la misma estructura que ES-DE
+/// Las imágenes se guardan en la estructura estándar de media
 /// (storage/downloaded_media/{plataforma}/covers|screenshots|titlescreens),
-/// así ES-DE también las aprovecha.
+/// así otros frontends también pueden aprovecharlas.
 class Scraper extends ChangeNotifier {
   final http.Client _http = http.Client();
 
@@ -44,7 +44,7 @@ class Scraper extends ChangeNotifier {
   }
 
   Future<void> run({
-    required EmuLayout layout,
+    required LibraryLayout layout,
     required List<Game> games,
     required ScrapeOptions options,
     IgdbSource? igdb,
@@ -98,7 +98,7 @@ class Scraper extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<GameMeta?> _scrapeGame(EmuLayout layout, Game g, ScrapeOptions o,
+  Future<GameMeta?> _scrapeGame(LibraryLayout layout, Game g, ScrapeOptions o,
       LibretroSource libretro, IgdbSource? igdb) async {
     final mediaDir = p.join(layout.media, g.platform);
     final coverExists = _existing(mediaDir, 'covers', g.mediaName) != null;
@@ -209,7 +209,7 @@ class Scraper extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveMeta(EmuLayout layout, Map<String, Map<String, GameMeta>> pending) async {
+  Future<void> _saveMeta(LibraryLayout layout, Map<String, Map<String, GameMeta>> pending) async {
     for (final entry in pending.entries) {
       if (entry.value.isEmpty) continue;
       final file = File(layout.metadataFile(entry.key));

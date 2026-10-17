@@ -84,7 +84,7 @@ Map<String, List<BiosEntry>> parseSystemDat(String text) {
   return out;
 }
 
-/// Sistemas de System.dat que corresponden a cada carpeta de EmuDeck.
+/// Sistemas de System.dat que corresponden a cada carpeta de plataforma.
 const Map<String, List<String>> kBiosSystems = {
   'psx': ['Sony - PlayStation'],
   'ps2': ['Sony - PlayStation 2'],

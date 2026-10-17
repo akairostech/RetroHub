@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../core/models.dart';
 import 'libretro.dart';
 
-/// IDs de plataforma de IGDB para cada carpeta de EmuDeck.
+/// IDs de plataforma de IGDB para cada carpeta de plataforma.
 const Map<String, List<int>> kIgdbPlatforms = {
   'nes': [18, 99], 'famicom': [99, 18], 'snes': [19, 58], 'sfc': [58, 19],
   'n64': [4], 'gc': [21], 'wii': [5], 'primehack': [5], 'wiiu': [41],

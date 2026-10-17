@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:xml/xml.dart';
 
+import '../compat/external_installs.dart';
+
 /// Comando listo para ejecutar.
 class LaunchCommand {
   final String executable;
@@ -15,55 +17,30 @@ class LaunchCommand {
   String toString() => '$label: "$executable" ${arguments.map((a) => '"$a"').join(' ')}';
 }
 
-/// Lee la configuración de ES-DE (la que instala EmuDeck) para lanzar un juego
-/// exactamente como lo haría ES-DE, respetando el emulador elegido en cada
-/// sistema (alternativeEmulator del gamelist).
-class EsdeConfig {
-  final String esPath; // carpeta donde está ES-DE.exe
-  final String userDir; // carpeta ES-DE (custom_systems, gamelists...)
+/// Perfil de lanzamiento: lista de sistemas con sus comandos y reglas para
+/// encontrar cada emulador. Si el usuario ya tiene uno instalado, RetroHub lo
+/// reutiliza para abrir cada juego con el emulador que eligió por sistema.
+class LaunchProfile {
+  final String installDir; // carpeta de instalación del perfil
+  final String userDir; // carpeta de datos del usuario del perfil
   final String romPath;
   final Map<String, List<(String, String)>> systems; // id -> [(label, command)]
   final Map<String, List<(String, List<String>)>> emulatorRules; // NOMBRE -> [(tipo, entradas)]
   final Map<String, List<String>> coreRules;
 
-  EsdeConfig._(this.esPath, this.userDir, this.romPath, this.systems, this.emulatorRules,
+  LaunchProfile._(this.installDir, this.userDir, this.romPath, this.systems, this.emulatorRules,
       this.coreRules);
 
-  /// Busca ES-DE en las rutas típicas de EmuDeck. Devuelve null si no está.
-  static Future<EsdeConfig?> load({required String romPath}) async {
-    final candidates = <String>[];
-    final env = Platform.environment;
-    if (Platform.isWindows) {
-      final appData = env['APPDATA'];
-      if (appData != null) candidates.add(p.join(appData, 'EmuDeck', 'EmulationStation-DE'));
-      final local = env['LOCALAPPDATA'];
-      if (local != null) candidates.add(p.join(local, 'Programs', 'ES-DE'));
-    } else {
-      final home = env['HOME'];
-      if (home != null) {
-        // Instalación con recursos extraídos (no AppImage).
-        candidates.add(p.join(home, 'Applications', 'ES-DE'));
-      }
-    }
-    for (final dir in candidates) {
-      final osName = Platform.isWindows ? 'windows' : 'linux';
-      final res = Directory(p.join(dir, 'resources', 'systems', osName));
-      if (!await res.exists()) continue;
-      final userDir = await Directory(p.join(dir, 'ES-DE')).exists()
-          ? p.join(dir, 'ES-DE')
-          : p.join(env['HOME'] ?? env['USERPROFILE'] ?? dir, 'ES-DE');
+  /// Busca un perfil de lanzamiento instalado. Devuelve null si no hay.
+  static Future<LaunchProfile?> load({required String romPath}) async {
+    for (final loc in ExternalInstalls.launchProfileLocations()) {
+      if (!await File(loc.systemsFiles.first).exists()) continue;
       return parse(
-        esPath: dir,
-        userDir: userDir,
+        installDir: loc.installDir,
+        userDir: loc.userDir,
         romPath: romPath,
-        systemsXml: [
-          await _read(p.join(res.path, 'es_systems.xml')),
-          await _read(p.join(userDir, 'custom_systems', 'es_systems.xml')),
-        ],
-        findRulesXml: [
-          await _read(p.join(userDir, 'custom_systems', 'es_find_rules.xml')),
-          await _read(p.join(res.path, 'es_find_rules.xml')),
-        ],
+        systemsXml: [for (final f in loc.systemsFiles) await _read(f)],
+        findRulesXml: [for (final f in loc.rulesFiles) await _read(f)],
       );
     }
     return null;
@@ -80,8 +57,8 @@ class EsdeConfig {
 
   /// [systemsXml]: el último tiene prioridad (custom_systems reemplaza al
   /// sistema completo). [findRulesXml]: el primero tiene prioridad.
-  static EsdeConfig parse({
-    required String esPath,
+  static LaunchProfile parse({
+    required String installDir,
     required String userDir,
     required String romPath,
     required List<String?> systemsXml,
@@ -126,19 +103,19 @@ class EsdeConfig {
         ];
       }
     }
-    return EsdeConfig._(esPath, userDir, romPath, systems, emulators, cores);
+    return LaunchProfile._(installDir, userDir, romPath, systems, emulators, cores);
   }
 
-  /// Emulador elegido para el sistema en ES-DE (gamelist.xml).
+  /// Emulador elegido por el usuario para el sistema (si lo hay).
   Future<String?> alternativeEmulator(String system) async {
-    final xml = await _read(p.join(userDir, 'gamelists', system, 'gamelist.xml'));
+    final xml = await _read(ExternalInstalls.chosenEmulatorFile(userDir, system));
     if (xml == null) return null;
     final m = RegExp(r'<alternativeEmulator>\s*<label>([^<]+)</label>').firstMatch(xml);
     return m?.group(1)?.trim();
   }
 
   String _expandPathVars(String s, {String? emuPath}) {
-    var out = s.replaceAll('%ESPATH%', esPath).replaceAll('%ROMPATH%', romPath);
+    var out = s.replaceAll(ExternalInstalls.installDirVariable, installDir).replaceAll('%ROMPATH%', romPath);
     if (emuPath != null) out = out.replaceAll('%EMUPATH%', emuPath);
     return out.replaceAll('\\', Platform.pathSeparator).replaceAll('/', Platform.pathSeparator);
   }
@@ -180,7 +157,7 @@ class EsdeConfig {
   }
 
   /// Construye el comando para [romFile] en [system]. Prueba primero el
-  /// emulador elegido en ES-DE y si no está instalado, los demás en orden.
+  /// emulador elegido por el usuario y si no está instalado, los demás en orden.
   Future<LaunchCommand?> commandFor(String system, String romFile) async {
     final cmds = systems[system];
     if (cmds == null) return null;
@@ -196,10 +173,10 @@ class EsdeConfig {
     return null;
   }
 
-  /// Reemplaza las variables de ES-DE. Devuelve null si falta el emulador.
+  /// Reemplaza las variables del comando. Devuelve null si falta el emulador.
   LaunchCommand? expand(String template, String label, String romFile) {
     var t = template;
-    // Opciones que no aplican fuera de ES-DE.
+    // Opciones de ventana que no aplican al lanzar desde RetroHub.
     t = t
         .replaceAll('%HIDEWINDOW%', '')
         .replaceAll('%ESCAPESPECIALS%', '')
@@ -242,7 +219,7 @@ class EsdeConfig {
         .replaceAll('%BASENAME%', base)
         .replaceAll('%FILENAME%', p.basename(romFile))
         .replaceAll('%EMUDIR%', emulatorExe == null ? '' : p.dirname(emulatorExe))
-        .replaceAll('%ESPATH%', esPath)
+        .replaceAll(ExternalInstalls.installDirVariable, installDir)
         .replaceAll('%ROMPATH%', romPath);
     if (RegExp(r'%[A-Z_]+%').hasMatch(t)) return null; // variable desconocida
 

@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_state.dart';
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../core/models.dart';
 import '../scrape/scraper.dart';
 import 'scrape_widgets.dart';
+import 'setup_dialog.dart';
 import 'tools_dialogs.dart';
 import 'theme.dart';
 import 'widgets/game_widgets.dart';
@@ -24,13 +25,22 @@ class LibraryPage extends StatelessWidget {
     if (app.layout == null) {
       body = EmptyState(
         icon: Icons.folder_open_rounded,
-        title: 'Elige tu carpeta Emulation',
-        message: 'Selecciona la carpeta de EmuDeck que contiene roms, bios y saves.',
-        action: FilledButton.icon(
-          onPressed: onOpenSettings,
-          icon: const Icon(Icons.settings_rounded),
-          label: const Text('Ir a Ajustes'),
-        ),
+        title: 'Configura tu biblioteca',
+        message: 'No encontré una biblioteca de juegos en este dispositivo. '
+            'Puedes crear una nueva con todas las carpetas o elegir una que ya tengas.',
+        action: Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, children: [
+          FilledButton.icon(
+            autofocus: true,
+            onPressed: () => showCreateLibraryDialog(context),
+            icon: const Icon(Icons.create_new_folder_rounded),
+            label: const Text('Crear biblioteca'),
+          ),
+          OutlinedButton.icon(
+            onPressed: onOpenSettings,
+            icon: const Icon(Icons.folder_open_rounded),
+            label: const Text('Elegir carpeta existente'),
+          ),
+        ]),
       );
     } else if (!app.storageGranted) {
       body = EmptyState(
@@ -49,7 +59,15 @@ class LibraryPage extends StatelessWidget {
         icon: Icons.error_outline_rounded,
         title: 'No se pudo leer la biblioteca',
         message: app.scanError!,
-        action: OutlinedButton(onPressed: onOpenSettings, child: const Text('Revisar carpeta')),
+        action: Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, children: [
+          FilledButton.icon(
+            autofocus: true,
+            onPressed: () => showCreateLibraryDialog(context, initialPath: app.layout!.root),
+            icon: const Icon(Icons.create_new_folder_rounded),
+            label: const Text('Crear las carpetas que faltan'),
+          ),
+          OutlinedButton(onPressed: onOpenSettings, child: const Text('Elegir otra carpeta')),
+        ]),
       );
     } else if (app.library.isEmpty) {
       body = const EmptyState(

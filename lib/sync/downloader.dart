@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../core/app_log.dart';
 import '../core/models.dart';
 import '../net/client.dart';
@@ -50,7 +50,7 @@ class DownloadManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  void downloadGame(RetroClient client, EmuLayout layout, Game game) {
+  void downloadGame(RetroClient client, LibraryLayout layout, Game game) {
     final id = 'rom:${game.key}';
     if (isQueued(id)) return;
     final task = DownloadTask(id, game.title, game.platform.toUpperCase());
@@ -68,7 +68,7 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Descarga las BIOS que falten (o tengan otro tamaño).
-  void downloadBios(RetroClient client, EmuLayout layout) {
+  void downloadBios(RetroClient client, LibraryLayout layout) {
     const id = 'bios';
     if (isQueued(id)) return;
     final task = DownloadTask(id, 'BIOS', 'Archivos faltantes');
@@ -174,6 +174,6 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Ruta local donde quedaría un juego remoto.
-  static String localPathFor(EmuLayout layout, Game g) =>
+  static String localPathFor(LibraryLayout layout, Game g) =>
       p.join(layout.roms, g.platform, g.fileName);
 }

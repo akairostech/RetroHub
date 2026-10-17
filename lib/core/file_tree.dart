@@ -7,7 +7,7 @@ import 'models.dart';
 
 /// Lista recursivamente los archivos bajo [root] con rutas relativas "/".
 /// Omite archivos/carpetas ocultos (empiezan por ".") como los que
-/// EmuDeck usa para su CloudSync (.cloud, .hash, .temp...) y el historial.
+/// otras herramientas usan para su sincronización (.cloud, .hash, .temp...) y el historial.
 Future<List<FileEntry>> listTree(
   String root, {
   HashCache? hashes,

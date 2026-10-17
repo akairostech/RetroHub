@@ -7,9 +7,10 @@ import 'package:http/http.dart' as http;
 
 import '../app_state.dart';
 import '../core/app_log.dart';
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../core/platforms.dart';
 import '../scrape/igdb.dart';
+import 'setup_dialog.dart';
 import 'theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -54,7 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _detect() async {
     final found = await detectEmulationRoot();
     if (found == null) {
-      setState(() => _msg = 'No se encontró una instalación de EmuDeck.');
+      setState(() => _msg = 'No se encontró ninguna biblioteca existente.');
       return;
     }
     _root.text = found;
@@ -67,7 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final ok = await Directory('$path${Platform.pathSeparator}roms').exists();
     setState(() => _msg = ok
         ? 'Carpeta guardada. Escaneando biblioteca...'
-        : 'Ojo: no hay una carpeta "roms" dentro de esa ruta.');
+        : 'Esa carpeta todavía no tiene la estructura. Usa "Crear biblioteca" para crearla.');
     await AppScope.read(context).setEmulationRoot(path);
   }
 
@@ -91,8 +92,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                     const SizedBox(height: 4),
                     const Text(
-                      'La misma estructura de EmuDeck: roms/{plataforma}, bios/, saves/{emulador}/ '
-                      'y storage/downloaded_media (carátulas de ES-DE).',
+                      'Estructura: roms/{plataforma}, bios/, saves/{emulador}/ '
+                      'y storage/downloaded_media (carátulas e imágenes).',
                       style: TextStyle(color: RetroColors.textDim, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
@@ -114,9 +115,20 @@ class _SettingsPageState extends State<SettingsPage> {
                       OutlinedButton.icon(
                         onPressed: _detect,
                         icon: const Icon(Icons.auto_fix_high_rounded),
-                        label: const Text('Detectar EmuDeck'),
+                        label: const Text('Detectar biblioteca'),
                       ),
                       OutlinedButton(onPressed: _applyRoot, child: const Text('Guardar ruta')),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final current = _root.text.trim();
+                          await showCreateLibraryDialog(context,
+                              initialPath: current.isEmpty ? null : current);
+                          final now = AppScope.read(context).settings.emulationRoot;
+                          if (now != null && mounted) setState(() => _root.text = now);
+                        },
+                        icon: const Icon(Icons.create_new_folder_rounded),
+                        label: const Text('Crear biblioteca'),
+                      ),
                     ]),
                     if (_msg != null)
                       Padding(
@@ -190,7 +202,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 12),
               const RetroCard(
                 child: Text(
-                  'RetroHub 0.4 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
+                  'RetroHub 0.5 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
                   'Las partidas (saves) se sincronizan en ambos sentidos y nunca se borran: '
                   'antes de reemplazar una se guarda una copia en saves/.retrohub_history.',
                   style: TextStyle(color: RetroColors.textDim, fontSize: 12),
@@ -431,7 +443,7 @@ class _LaunchCard extends StatelessWidget {
         subtitle: Text(
           Platform.isAndroid
               ? 'Se abren RetroArch, PPSSPP, Dolphin, NetherSX2 o el emulador que elijas.'
-              : 'Se usa la configuración de ES-DE/EmuDeck. Aquí puedes cambiarla por plataforma.',
+              : 'Se detecta automáticamente el emulador de cada sistema. Aquí puedes cambiarlo por plataforma.',
           style: const TextStyle(color: RetroColors.textDim, fontSize: 12),
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

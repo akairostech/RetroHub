@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../core/app_log.dart';
 import '../core/file_hash.dart';
 import '../core/file_tree.dart';
@@ -24,7 +24,7 @@ import 'protocol.dart';
 ///   GET  /api/file?area=&path=               -> descarga
 ///   PUT  /api/file?area=saves&path=          -> subida (solo saves)
 class RetroServer extends ChangeNotifier {
-  final EmuLayout? Function() layout;
+  final LibraryLayout? Function() layout;
   final Map<String, List<Game>> Function() library;
   final String Function() pin;
   final String Function() deviceName;

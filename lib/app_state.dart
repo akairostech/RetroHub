@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/widgets.dart';
 
-import 'core/emudeck.dart';
+import 'core/layout.dart';
 import 'core/app_log.dart';
 import 'core/file_hash.dart';
 import 'core/library_scanner.dart';
@@ -35,7 +35,7 @@ class AppState extends ChangeNotifier {
   List<String> recents = [];
 
   bool ready = false;
-  EmuLayout? layout;
+  LibraryLayout? layout;
 
   // Biblioteca local
   Map<String, List<Game>> library = {};
@@ -91,7 +91,7 @@ class AppState extends ChangeNotifier {
       root = await detectEmulationRoot();
       if (root != null) settings.emulationRoot = root;
     }
-    if (root != null) layout = EmuLayout(root);
+    if (root != null) layout = LibraryLayout(root);
     _attachLog();
     appLog.info('RetroHub iniciado en ${Platform.operatingSystem} '
         '(carpeta: ${layout?.root ?? 'sin configurar'})');
@@ -152,7 +152,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> setEmulationRoot(String root) async {
     settings.emulationRoot = root;
-    layout = EmuLayout(root);
+    layout = LibraryLayout(root);
     _attachLog();
     notifyListeners();
     await rescan();

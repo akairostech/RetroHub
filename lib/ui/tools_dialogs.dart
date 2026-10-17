@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_state.dart';
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../core/library_tools.dart';
 import '../core/models.dart';
 import '../core/platforms.dart';

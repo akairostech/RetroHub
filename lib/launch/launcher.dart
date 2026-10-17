@@ -4,13 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/app_log.dart';
-import '../core/emudeck.dart';
+import '../compat/external_installs.dart';
+import '../core/layout.dart';
 import '../core/models.dart';
 import '../core/settings.dart';
-import 'esde.dart';
+import 'launch_profile.dart';
 
-/// Cómo lanzar cada sistema sin ES-DE: lanzadores de EmuDeck
-/// (Emulation/tools/launchers) y núcleo de RetroArch de respaldo.
+/// Cómo lanzar cada sistema sin perfil de lanzamiento: scripts de
+/// {raíz}/tools/launchers y núcleo de RetroArch de respaldo.
 class _DesktopRecipe {
   final List<String> standalone; // prefijos del nombre del lanzador
   final String? core; // núcleo de RetroArch (sin _libretro)
@@ -118,11 +119,11 @@ const Map<String, List<_AndroidApp>> _androidStandalone = {
 /// Lanza juegos con el emulador correcto en cada sistema operativo.
 class GameLauncher {
   static const _channel = MethodChannel('retro_hub/launch');
-  EsdeConfig? _esde;
-  bool _esdeLoaded = false;
+  LaunchProfile? _profile;
+  bool _profileLoaded = false;
 
   /// Lanza [game]. Devuelve null si todo salió bien o un mensaje de error.
-  Future<String?> launch(Game game, EmuLayout layout, AppSettings settings) async {
+  Future<String?> launch(Game game, LibraryLayout layout, AppSettings settings) async {
     final rom = game.localPath;
     if (rom == null) return 'Este juego no está en este dispositivo.';
     try {
@@ -146,25 +147,25 @@ class GameLauncher {
     return _start(LaunchCommand(parts.first, parts.sublist(1), 'Personalizado'), game);
   }
 
-  Future<String?> _launchDesktop(Game game, String rom, EmuLayout layout) async {
-    // 1) Igual que ES-DE (Windows con EmuDeck).
-    if (!_esdeLoaded) {
-      _esdeLoaded = true;
-      _esde = await EsdeConfig.load(romPath: layout.roms);
-      appLog.info(_esde == null
-          ? 'ES-DE no encontrado; se usarán los lanzadores de EmuDeck'
-          : 'Configuración de ES-DE cargada desde ${_esde!.esPath}');
+  Future<String?> _launchDesktop(Game game, String rom, LibraryLayout layout) async {
+    // 1) Perfil de lanzamiento instalado (respeta el emulador elegido).
+    if (!_profileLoaded) {
+      _profileLoaded = true;
+      _profile = await LaunchProfile.load(romPath: layout.roms);
+      appLog.info(_profile == null
+          ? 'Sin perfil de lanzamiento instalado; se usarán los lanzadores de tools/launchers'
+          : 'Perfil de lanzamiento cargado desde ${_profile!.installDir}');
     }
-    final esdeCmd = await _esde?.commandFor(game.platform, rom);
-    if (esdeCmd != null) return _start(esdeCmd, game);
+    final profileCmd = await _profile?.commandFor(game.platform, rom);
+    if (profileCmd != null) return _start(profileCmd, game);
 
-    // 2) Lanzadores de EmuDeck / RetroArch.
+    // 2) Scripts de tools/launchers / RetroArch.
     final recipe = _desktop[game.platform];
     if (recipe == null) {
       return 'No sé qué emulador usar para ${game.platform}. '
           'Configura un comando en Ajustes → Emuladores.';
     }
-    final launchers = Directory(p.join(layout.root, 'tools', 'launchers'));
+    final launchers = Directory(layout.launchers);
     for (final prefix in recipe.standalone) {
       final script = await _findLauncher(launchers, prefix);
       if (script != null) return _start(_scriptCommand(script, [rom], prefix), game);
@@ -174,7 +175,7 @@ class GameLauncher {
       if (cmd != null) return _start(cmd, game);
     }
     return 'No encontré el emulador para ${game.platform}. '
-        'Revisa que esté instalado con EmuDeck o configura un comando en Ajustes → Emuladores.';
+        'Revisa que esté instalado o configura un comando en Ajustes → Emuladores.';
   }
 
   Future<String?> _findLauncher(Directory dir, String prefix) async {
@@ -199,7 +200,7 @@ class GameLauncher {
   Future<LaunchCommand?> _retroarchCommand(Directory launchers, String core, String rom) async {
     final env = Platform.environment;
     if (Platform.isWindows) {
-      final base = p.join(env['APPDATA'] ?? '', 'EmuDeck', 'Emulators', 'RetroArch');
+      final base = ExternalInstalls.windowsRetroArchDir();
       final exe = File(p.join(base, 'retroarch.exe'));
       final coreFile = File(p.join(base, 'cores', '${core}_libretro.dll'));
       if (await exe.exists() && await coreFile.exists()) {
@@ -254,7 +255,7 @@ class GameLauncher {
       missing.add(err.substring('NOT_INSTALLED:'.length));
     }
     return 'No está instalado ningún emulador para este sistema '
-        '(${missing.join(' ni ')}). Instálalo con EmuDeck o desde su tienda.';
+        '(${missing.join(' ni ')}). Instálalo desde su tienda o su página oficial.';
   }
 
   Map<String, Object?> _spec(_AndroidApp app, String rom, {String? core}) => {

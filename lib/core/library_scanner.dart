@@ -4,7 +4,7 @@ import 'dart:isolate';
 
 import 'package:path/path.dart' as p;
 
-import 'emudeck.dart';
+import 'layout.dart';
 import 'models.dart';
 import 'platforms.dart';
 
@@ -21,16 +21,16 @@ const _ignoredDirs = {
   'media', 'images', 'videos', 'manuals', 'downloaded_media', 'shortcuts',
 };
 
-/// Prioridad de imágenes de ES-DE.
+/// Prioridad de tipos de imagen.
 const _mediaTypes = ['covers', '3dboxes', 'miximages', 'screenshots', 'titlescreens'];
 
 /// Escanea roms/ en un isolate aparte para no congelar la interfaz.
-Future<Map<String, List<Game>>> scanLibrary(EmuLayout layout) {
+Future<Map<String, List<Game>>> scanLibrary(LibraryLayout layout) {
   final root = layout.root;
-  return Isolate.run(() => _scan(EmuLayout(root)));
+  return Isolate.run(() => _scan(LibraryLayout(root)));
 }
 
-Future<Map<String, List<Game>>> _scan(EmuLayout layout) async {
+Future<Map<String, List<Game>>> _scan(LibraryLayout layout) async {
   final result = <String, List<Game>>{};
   final romsDir = Directory(layout.roms);
   if (!await romsDir.exists()) return result;
@@ -41,7 +41,7 @@ Future<Map<String, List<Game>>> _scan(EmuLayout layout) async {
     final platform = p.basename(entity.path);
     if (platform.startsWith('.')) continue;
 
-    // EmuDeck crea alias (enlaces) entre carpetas; evitamos duplicados.
+    // Puede haber alias (enlaces) entre carpetas; evitamos duplicados.
     String real;
     try {
       real = await Directory(entity.path).resolveSymbolicLinks();
@@ -59,7 +59,7 @@ Future<Map<String, List<Game>>> _scan(EmuLayout layout) async {
 }
 
 Future<List<Game>> _scanPlatform(
-    EmuLayout layout, String platform, Directory dir) async {
+    LibraryLayout layout, String platform, Directory dir) async {
   final entries = <FileSystemEntity>[];
   try {
     await for (final e in dir.list(followLinks: true)) {
@@ -132,7 +132,7 @@ Future<List<Game>> _scanPlatform(
 }
 
 /// Metadatos guardados por el scraper (storage/retrohub/metadata/{platform}.json).
-Map<String, GameMeta> _loadMeta(EmuLayout layout, String platform) {
+Map<String, GameMeta> _loadMeta(LibraryLayout layout, String platform) {
   try {
     final f = File(layout.metadataFile(platform));
     if (!f.existsSync()) return const {};
@@ -154,12 +154,12 @@ Future<int> _dirSize(Directory dir) async {
   return total;
 }
 
-/// Índice de imágenes descargadas por ES-DE para una plataforma.
+/// Índice de imágenes descargadas para una plataforma.
 class _MediaIndex {
   final Map<String, String> _byName;
   _MediaIndex(this._byName);
 
-  static _MediaIndex load(EmuLayout layout, String platform) {
+  static _MediaIndex load(LibraryLayout layout, String platform) {
     final map = <String, String>{};
     // Recorremos de menor a mayor prioridad para que "covers" sobrescriba.
     for (final type in _mediaTypes.reversed) {

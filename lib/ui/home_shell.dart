@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
-import '../core/emudeck.dart';
+import '../core/layout.dart';
 import '../input/gamepad.dart';
 import 'widgets/game_widgets.dart';
 import 'library_page.dart';
