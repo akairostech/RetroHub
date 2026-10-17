@@ -105,11 +105,14 @@ const Map<String, String> _androidCores = {
   '3do': 'opera', 'dos': 'dosbox_pure', 'psx': 'pcsx_rearmed',
 };
 
-const Map<String, _AndroidApp> _androidStandalone = {
-  'psp': _ppsspp,
-  'gc': _dolphin,
-  'wii': _dolphin,
-  'ps2': _nethersx2,
+/// Emuladores propios por sistema (se prueban en orden; si ninguno está
+/// instalado se usa RetroArch con el núcleo correspondiente).
+const Map<String, List<_AndroidApp>> _androidStandalone = {
+  'psp': [_ppsspp],
+  'gc': [_dolphin],
+  'wii': [_dolphin],
+  'ps2': [_nethersx2],
+  'psx': [_duckstation],
 };
 
 /// Lanza juegos con el emulador correcto en cada sistema operativo.
@@ -232,20 +235,26 @@ class GameLauncher {
   }
 
   Future<String?> _launchAndroid(Game game, String rom) async {
-    final standalone = _androidStandalone[game.platform];
     final core = _androidCores[game.platform];
-    final Map<String, Object?> spec;
-    if (standalone != null) {
-      spec = _spec(standalone, rom);
-    } else if (core != null) {
-      spec = _spec(_retroarch, rom, core: core);
-    } else {
+    final specs = [
+      for (final app in _androidStandalone[game.platform] ?? const <_AndroidApp>[])
+        _spec(app, rom),
+      if (core != null) _spec(_retroarch, rom, core: core),
+    ];
+    if (specs.isEmpty) {
       // Sin receta: que Android pregunte con qué app abrirlo.
-      spec = {'mode': 'view', 'path': rom, 'chooser': true, 'name': 'un emulador'};
+      specs.add({'mode': 'view', 'path': rom, 'name': 'un emulador'});
     }
-    appLog.info('Jugar ${game.title} en Android: $spec');
-    final err = await _channel.invokeMethod<String>('launch', spec);
-    return err;
+    final missing = <String>[];
+    for (final spec in specs) {
+      appLog.info('Jugar ${game.title} en Android: $spec');
+      final err = await _channel.invokeMethod<String>('launch', spec);
+      if (err == null) return null;
+      if (!err.startsWith('NOT_INSTALLED:')) return err;
+      missing.add(err.substring('NOT_INSTALLED:'.length));
+    }
+    return 'No está instalado ningún emulador para este sistema '
+        '(${missing.join(' ni ')}). Instálalo con EmuDeck o desde su tienda.';
   }
 
   Map<String, Object?> _spec(_AndroidApp app, String rom, {String? core}) => {

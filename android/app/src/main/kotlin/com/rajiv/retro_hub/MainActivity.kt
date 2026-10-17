@@ -102,7 +102,7 @@ class MainActivity : FlutterActivity() {
                 return null
             }
             val pkg = packages.firstOrNull { isInstalled(it) }
-                ?: return "$name no está instalado en este dispositivo."
+                ?: return "NOT_INSTALLED:$name"
             val intent = Intent()
             val activity = spec["activity"] as String?
             if (activity != null) intent.component = ComponentName(pkg, activity) else intent.setPackage(pkg)

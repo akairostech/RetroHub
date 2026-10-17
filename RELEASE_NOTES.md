@@ -6,11 +6,11 @@
 | Android | `RetroHub-android.apk` | Ábrelo en el teléfono (permite instalar apps de origen desconocido) |
 | Linux / SteamOS | `RetroHub-linux-x64.tar.gz` | Descomprime y ejecuta `install-desktop-entry.sh` |
 
-## Novedades de la 0.3
+## Novedades de la 0.4
 
-- **Scraper** de carátulas, capturas, pantallas de título y metadatos (desarrollador, género, año, jugadores). Usa libretro sin cuenta; con credenciales gratuitas de IGDB agrega descripciones y consolas modernas.
-- **Versión para Linux / SteamOS.**
-- Ícono nuevo e íconos de consola por plataforma.
-- Las descargas se reanudan solas si se corta la red.
-- Registro de actividad y errores en Ajustes → Registro.
-- Corregida la subida de partidas al servidor.
+- **Botón Jugar.** En Windows usa la misma configuración que ES-DE/EmuDeck (respeta el emulador que elegiste en cada sistema). En Linux/SteamOS usa los lanzadores de EmuDeck y RetroArch. En Android abre RetroArch, PPSSPP, Dolphin, NetherSX2 o DuckStation. Puedes poner un comando propio por plataforma en Ajustes → Emuladores.
+- **Navegación con mando** en Windows, Linux/SteamOS y Android: cruceta o stick para moverte, **A** abrir, **B** volver, **Y** jugar, **X** favorito, **LB/RB** cambiar de sección.
+- **Favoritos y Recientes** en la barra de plataformas.
+- **Ordenar** por nombre, año, género, tamaño o plataforma; la búsqueda también encuentra por género y desarrollador.
+- **Buscar duplicados** (menú Herramientas): versiones repetidas del mismo juego y espacio que ocupan.
+- **Verificar BIOS** (menú Herramientas): compara tus BIOS con la base de datos de libretro por su huella MD5.

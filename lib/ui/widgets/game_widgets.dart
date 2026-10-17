@@ -520,7 +520,7 @@ class _GameBrowserState extends State<GameBrowser> {
   Widget _chip(String label, String? id, int count) {
     final selected = _platform == id;
     final virtual = id == null || id == kFavoritesId || id == kRecentsId;
-    final color = virtual ? RetroColors.accent : platformInfo(id!).color;
+    final color = virtual ? RetroColors.accent : platformInfo(id).color;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: ChoiceChip(
