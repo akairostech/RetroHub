@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -72,6 +73,7 @@ Future<List<Game>> _scanPlatform(
   final hasCue = names.any((n) => n.endsWith('.cue'));
   final hasM3u = names.any((n) => n.endsWith('.m3u'));
   final media = _MediaIndex.load(layout, platform);
+  final metas = _loadMeta(layout, platform);
 
   final games = <Game>[];
   for (final e in entries) {
@@ -91,6 +93,7 @@ Future<List<Game>> _scanPlatform(
         isFolder: true,
         localPath: e.path,
         coverFile: media.find(name),
+        meta: metas[name],
       ));
       continue;
     }
@@ -120,11 +123,25 @@ Future<List<Game>> _scanPlatform(
       size: size,
       localPath: e.path,
       coverFile: media.find(p.basenameWithoutExtension(name)),
+      meta: metas[name],
     ));
   }
 
   games.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
   return games;
+}
+
+/// Metadatos guardados por el scraper (storage/retrohub/metadata/{platform}.json).
+Map<String, GameMeta> _loadMeta(EmuLayout layout, String platform) {
+  try {
+    final f = File(layout.metadataFile(platform));
+    if (!f.existsSync()) return const {};
+    final raw = jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
+    return raw.map((k, v) =>
+        MapEntry(k, GameMeta.fromJson(Map<String, dynamic>.from(v as Map))));
+  } catch (_) {
+    return const {};
+  }
 }
 
 Future<int> _dirSize(Directory dir) async {

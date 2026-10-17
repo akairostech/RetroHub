@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/widgets.dart';
 
 import 'core/emudeck.dart';
@@ -12,6 +13,8 @@ import 'core/settings.dart';
 import 'net/client.dart';
 import 'net/protocol.dart';
 import 'net/server.dart';
+import 'scrape/igdb.dart';
+import 'scrape/scraper.dart';
 import 'sync/downloader.dart';
 import 'sync/save_sync.dart';
 
@@ -22,6 +25,7 @@ class AppState extends ChangeNotifier {
   late final RetroServer server;
   late final SaveSync saveSync;
   final downloads = DownloadManager();
+  final scraper = Scraper();
 
   bool ready = false;
   EmuLayout? layout;
@@ -163,6 +167,18 @@ class AppState extends ChangeNotifier {
     }
     scanning = false;
     notifyListeners();
+  }
+
+  /// Fuente IGDB si el usuario configuró sus credenciales.
+  IgdbSource? igdbSource() => settings.hasIgdb
+      ? IgdbSource(http.Client(), settings.igdbClientId, settings.igdbClientSecret)
+      : null;
+
+  Future<void> scrape(List<Game> games, ScrapeOptions options) async {
+    final lay = layout;
+    if (lay == null || games.isEmpty) return;
+    await scraper.run(layout: lay, games: games, options: options, igdb: igdbSource());
+    await rescan();
   }
 
   bool hasLocal(Game g) =>

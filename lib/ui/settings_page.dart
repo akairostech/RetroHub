@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 import '../app_state.dart';
 import '../core/app_log.dart';
 import '../core/emudeck.dart';
+import '../scrape/igdb.dart';
 import 'theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -179,11 +181,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              const _IgdbCard(),
+              const SizedBox(height: 12),
               const _LogCard(),
               const SizedBox(height: 12),
               const RetroCard(
                 child: Text(
-                  'RetroHub 0.2 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
+                  'RetroHub 0.3 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
                   'Las partidas (saves) se sincronizan en ambos sentidos y nunca se borran: '
                   'antes de reemplazar una se guarda una copia en saves/.retrohub_history.',
                   style: TextStyle(color: RetroColors.textDim, fontSize: 12),
@@ -282,6 +286,128 @@ class _LogCard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Credenciales opcionales de IGDB para el scraper.
+class _IgdbCard extends StatefulWidget {
+  const _IgdbCard();
+
+  @override
+  State<_IgdbCard> createState() => _IgdbCardState();
+}
+
+class _IgdbCardState extends State<_IgdbCard> {
+  late final TextEditingController _id;
+  late final TextEditingController _secret;
+  bool _testing = false;
+  String? _result;
+  bool _ok = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = AppScope.read(context).settings;
+    _id = TextEditingController(text: s.igdbClientId);
+    _secret = TextEditingController(text: s.igdbClientSecret);
+  }
+
+  @override
+  void dispose() {
+    _id.dispose();
+    _secret.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final s = AppScope.read(context).settings;
+    s.igdbClientId = _id.text.trim();
+    s.igdbClientSecret = _secret.text.trim();
+  }
+
+  Future<void> _test() async {
+    _save();
+    setState(() {
+      _testing = true;
+      _result = null;
+    });
+    final client = http.Client();
+    try {
+      await IgdbSource(client, _id.text.trim(), _secret.text.trim()).verify();
+      _ok = true;
+      _result = 'Conexión correcta. El scraper usará IGDB.';
+    } catch (e) {
+      _ok = false;
+      _result = '$e';
+    } finally {
+      client.close();
+    }
+    if (mounted) setState(() => _testing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RetroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Icon(Icons.auto_awesome_rounded, color: RetroColors.neon),
+            SizedBox(width: 8),
+            Text('Scraper · IGDB (opcional)',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          ]),
+          const SizedBox(height: 6),
+          const SelectableText(
+            'Sin cuenta, el scraper usa libretro: carátulas, capturas, desarrollador, '
+            'género, año y jugadores de consolas clásicas. Con IGDB (gratis) agrega '
+            'descripciones y cubre consolas modernas como Switch, PS3 y PS4.\n'
+            'Cómo obtener las credenciales: entra a dev.twitch.tv/console con tu cuenta '
+            'de Twitch (activa la verificación en 2 pasos), registra una aplicación con '
+            'URL de redirección http://localhost y categoría "Application Integration", '
+            'y copia aquí su Client ID y un Client Secret nuevo.',
+            style: TextStyle(color: RetroColors.textDim, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Wrap(spacing: 12, runSpacing: 12, children: [
+            SizedBox(
+              width: 300,
+              child: TextField(
+                controller: _id,
+                decoration: const InputDecoration(labelText: 'Client ID'),
+                onChanged: (_) => _save(),
+              ),
+            ),
+            SizedBox(
+              width: 300,
+              child: TextField(
+                controller: _secret,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Client Secret'),
+                onChanged: (_) => _save(),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            OutlinedButton.icon(
+              onPressed: _testing ? null : _test,
+              icon: _testing
+                  ? const SizedBox(
+                      width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.wifi_tethering_rounded),
+              label: const Text('Probar conexión'),
+            ),
+            const SizedBox(width: 12),
+            if (_result != null)
+              Expanded(
+                child: Text(_result!,
+                    style: TextStyle(color: _ok ? RetroColors.ok : RetroColors.danger)),
+              ),
+          ]),
+        ],
+      ),
     );
   }
 }

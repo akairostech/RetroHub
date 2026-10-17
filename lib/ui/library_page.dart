@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import '../app_state.dart';
 import '../core/emudeck.dart';
 import '../core/models.dart';
+import '../scrape/scraper.dart';
+import 'scrape_widgets.dart';
 import 'theme.dart';
 import 'widgets/game_widgets.dart';
 
@@ -60,6 +62,16 @@ class LibraryPage extends StatelessWidget {
         cardBuilder: (context, g) => GameCard(
           game: g,
           onTap: () => showGameDetails(context, g, actions: [
+            OutlinedButton.icon(
+              onPressed: app.scraper.running
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      app.scrape([g], ScrapeOptions(onlyMissing: false));
+                    },
+              icon: const Icon(Icons.auto_awesome_rounded),
+              label: const Text('Buscar metadatos'),
+            ),
             if (isDesktop && g.localPath != null)
               OutlinedButton.icon(
                 onPressed: () => _reveal(g),
@@ -85,15 +97,22 @@ class LibraryPage extends StatelessWidget {
                 child: SizedBox(
                     width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
               )
-            else if (app.layout != null)
+            else if (app.layout != null) ...[
+              IconButton(
+                tooltip: 'Scraper: carátulas y metadatos',
+                onPressed: app.library.isEmpty ? null : () => showScrapeDialog(context),
+                icon: const Icon(Icons.auto_awesome_rounded),
+              ),
               IconButton(
                 tooltip: 'Volver a escanear',
                 onPressed: app.rescan,
                 icon: const Icon(Icons.refresh_rounded),
               ),
+            ],
           ],
         ),
         Expanded(child: body),
+        const ScrapeProgressPanel(),
       ],
     );
   }

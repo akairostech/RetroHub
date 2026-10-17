@@ -20,6 +20,9 @@ class Game {
   /// Carátula remota servida por otro dispositivo.
   final String? coverUrl;
 
+  /// Metadatos obtenidos por el scraper (o por el servidor).
+  final GameMeta? meta;
+
   const Game({
     required this.platform,
     required this.fileName,
@@ -30,6 +33,7 @@ class Game {
     this.localPath,
     this.coverFile,
     this.coverUrl,
+    this.meta,
   });
 
   String get key => '$platform/$fileName';
@@ -44,6 +48,7 @@ class Game {
         'size': size,
         'folder': isFolder,
         'cover': coverFile != null,
+        if (meta != null) 'meta': meta!.toJson(),
       };
 
   factory Game.fromJson(String platform, Map<String, dynamic> j,
@@ -56,6 +61,86 @@ class Game {
         size: (j['size'] as num?)?.toInt() ?? 0,
         isFolder: j['folder'] == true,
         coverUrl: coverUrl,
+        meta: j['meta'] is Map
+            ? GameMeta.fromJson(Map<String, dynamic>.from(j['meta'] as Map))
+            : null,
+      );
+}
+
+/// Metadatos de un juego (desarrollador, año, descripción...).
+class GameMeta {
+  final String? name;
+  final String? description;
+  final String? developer;
+  final String? publisher;
+  final String? genre;
+  final int? year;
+  final int? players;
+  final double? rating; // 0..100
+  final String? source;
+
+  const GameMeta({
+    this.name,
+    this.description,
+    this.developer,
+    this.publisher,
+    this.genre,
+    this.year,
+    this.players,
+    this.rating,
+    this.source,
+  });
+
+  bool get isEmpty =>
+      description == null &&
+      developer == null &&
+      publisher == null &&
+      genre == null &&
+      year == null &&
+      players == null;
+
+  /// Combina: los valores de [this] tienen prioridad, [other] rellena huecos.
+  GameMeta mergedWith(GameMeta? other) {
+    if (other == null) return this;
+    final sources = {
+      if (source != null) ...source!.split('+'),
+      if (other.source != null) ...other.source!.split('+'),
+    };
+    return GameMeta(
+      name: name ?? other.name,
+      description: description ?? other.description,
+      developer: developer ?? other.developer,
+      publisher: publisher ?? other.publisher,
+      genre: genre ?? other.genre,
+      year: year ?? other.year,
+      players: players ?? other.players,
+      rating: rating ?? other.rating,
+      source: sources.isEmpty ? null : sources.join('+'),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (developer != null) 'developer': developer,
+        if (publisher != null) 'publisher': publisher,
+        if (genre != null) 'genre': genre,
+        if (year != null) 'year': year,
+        if (players != null) 'players': players,
+        if (rating != null) 'rating': rating,
+        if (source != null) 'source': source,
+      };
+
+  factory GameMeta.fromJson(Map<String, dynamic> j) => GameMeta(
+        name: j['name'] as String?,
+        description: j['description'] as String?,
+        developer: j['developer'] as String?,
+        publisher: j['publisher'] as String?,
+        genre: j['genre'] as String?,
+        year: (j['year'] as num?)?.toInt(),
+        players: (j['players'] as num?)?.toInt(),
+        rating: (j['rating'] as num?)?.toDouble(),
+        source: j['source'] as String?,
       );
 }
 

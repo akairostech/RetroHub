@@ -7,6 +7,7 @@ Gestor de ROMs retro para Windows, Linux y Android, construido con Flutter.
 - **Biblioteca**: escanea `roms/{plataforma}` de tu carpeta EmuDeck y muestra las carátulas que ES-DE ya descargó en `storage/downloaded_media`. Si una carátula no existe, intenta usar libretro-thumbnails.
 - **Servidor** (solo escritorio): comparte ROMs, BIOS y partidas en tu red local. Se protege con un PIN y se anuncia por UDP para que los otros dispositivos lo encuentren.
 - **Descargar**: explora la biblioteca de otro dispositivo y descarga juegos o las BIOS que te falten.
+- **Scraper**: descarga carátulas, capturas y pantallas de título, y metadatos (desarrollador, editor, género, año, jugadores) desde libretro, sin cuenta. Con credenciales gratuitas de IGDB agrega descripciones y cubre consolas modernas. Las imágenes se guardan con la estructura de ES-DE, así ES-DE también las usa.
 - **Partidas**: sincroniza `saves/` en ambos sentidos con el servidor. Nunca borra archivos. Antes de sobrescribir uno guarda una copia en `saves/.retrohub_history`, y te pregunta qué hacer si un archivo cambió en los dos lados.
 
 ## Descargar
@@ -17,6 +18,15 @@ Cada push a `main` genera el APK de Android y el .zip de Windows en la pestaña 
 git tag v0.2.0
 git push origin v0.2.0
 ```
+
+## Instalar en SteamOS / Linux
+
+1. Descarga `RetroHub-linux-x64.tar.gz` de la página de [Releases](https://github.com/akairostech/RetroHub/releases/latest) (en Modo Escritorio).
+2. Descomprímelo donde quieras (por ejemplo en `~/Applications`).
+3. Ejecuta `install-desktop-entry.sh` (clic derecho → Ejecutar, o desde la terminal) para que aparezca en el menú.
+4. Opcional: en Steam, *Añadir un juego que no es de Steam* → RetroHub, para abrirlo en Modo Juego.
+
+La app detecta sola la carpeta Emulation de EmuDeck (incluida la de la tarjeta SD).
 
 ## Desarrollo
 

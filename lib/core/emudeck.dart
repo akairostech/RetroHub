@@ -16,6 +16,11 @@ class EmuLayout {
   String get saves => p.join(root, 'saves');
   String get media => p.join(root, 'storage', 'downloaded_media');
 
+  /// Datos propios de RetroHub (metadatos, cachés, registros).
+  String get appData => p.join(root, 'storage', 'retrohub');
+  String metadataFile(String platform) =>
+      p.join(appData, 'metadata', '$platform.json');
+
   /// Carpeta donde se guardan copias antes de sobrescribir un save.
   String get history => p.join(saves, '.retrohub_history');
 

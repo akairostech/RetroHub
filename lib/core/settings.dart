@@ -64,6 +64,13 @@ class AppSettings {
     _prefs.setString('lastServerPin', pin);
   }
 
+  // Credenciales de IGDB (app de Twitch) para el scraper.
+  String get igdbClientId => _prefs.getString('igdbClientId') ?? '';
+  set igdbClientId(String v) => _prefs.setString('igdbClientId', v);
+  String get igdbClientSecret => _prefs.getString('igdbClientSecret') ?? '';
+  set igdbClientSecret(String v) => _prefs.setString('igdbClientSecret', v);
+  bool get hasIgdb => igdbClientId.isNotEmpty && igdbClientSecret.isNotEmpty;
+
   int? get lastSaveSync => _prefs.getInt('lastSaveSync');
   set lastSaveSync(int? v) =>
       v == null ? _prefs.remove('lastSaveSync') : _prefs.setInt('lastSaveSync', v);

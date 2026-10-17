@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../../core/models.dart';
 import '../../core/platforms.dart';
+import '../scrape_widgets.dart';
 import '../theme.dart';
 
 /// URL de respaldo en libretro-thumbnails (si ES-DE no tiene la imagen).
@@ -518,6 +519,11 @@ Future<void> showGameDetails(
                           fontSize: 22, fontWeight: FontWeight.w800)),
                   if (game.tags != null)
                     Text(game.tags!, style: const TextStyle(color: RetroColors.textDim)),
+                  if (game.meta != null && !game.meta!.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: GameMetaView(meta: game.meta!),
+                    ),
                   const SizedBox(height: 12),
                   _kv('Plataforma', '${info.name} (${info.maker})'),
                   _kv('Archivo', game.fileName),
