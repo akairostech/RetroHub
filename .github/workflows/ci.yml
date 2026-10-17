@@ -49,7 +49,15 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: flutter build apk --release
+      - name: flutter build apk
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter build apk --release 2>&1 | tee build_output.txt; then
+            body=$( (grep -A25 -E 'What went wrong|^e: |error:' build_output.txt || tail -60 build_output.txt) | head -100 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+            echo "::error title=Fallo al compilar el APK::${body}"
+            exit 1
+          fi
       - run: mv build/app/outputs/flutter-apk/app-release.apk RetroHub-android.apk
       - uses: actions/upload-artifact@v5
         with:
