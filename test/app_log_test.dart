@@ -20,6 +20,8 @@ void main() {
     expect(text, contains('antes del archivo'));
     expect(text, contains('ERROR algo falló'));
     expect(text, contains('detalle'));
-    await dir.delete(recursive: true);
+    try {
+      await dir.delete(recursive: true);
+    } on FileSystemException catch (_) {}
   });
 }

@@ -37,7 +37,10 @@ void main() {
   tearDown(() async {
     client.close();
     await server.stop();
-    await root.delete(recursive: true);
+    // En Windows un archivo puede seguir abierto un instante; no es un fallo.
+    try {
+      await root.delete(recursive: true);
+    } on FileSystemException catch (_) {}
   });
 
   test('info devuelve el id de la instalación', () async {
