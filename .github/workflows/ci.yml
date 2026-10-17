@@ -135,18 +135,45 @@ jobs:
 
   release:
     name: Publicar Release
-    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    # Se publica solo en main cuando la versión de pubspec.yaml es nueva,
+    # o al publicar un Release a mano / crear un tag v*.
+    if: >-
+      github.event_name == 'release' ||
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     needs: [android, windows, linux]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+      - name: Decidir versión
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            tag="${{ github.event.release.tag_name }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            tag="${{ github.ref_name }}"
+          else
+            tag="v$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
+            if gh release view "$tag" -R "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "La versión $tag ya está publicada; no se crea otro Release."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v5
+        if: steps.version.outputs.skip != 'true'
         with:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
+        if: steps.version.outputs.skip != 'true'
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: RetroHub ${{ steps.version.outputs.tag }}
+          body_path: RELEASE_NOTES.md
           files: |
             RetroHub-android.apk
             RetroHub-windows.zip
             RetroHub-linux-x64.tar.gz
-          tag_name: ${{ github.event.release.tag_name || github.ref_name }}
-          generate_release_notes: true
