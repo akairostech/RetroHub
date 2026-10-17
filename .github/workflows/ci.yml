@@ -17,22 +17,22 @@ jobs:
     name: Análisis y pruebas
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
-      - run: flutter test
+      - run: flutter test --reporter github
 
   android:
     name: APK de Android
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -42,7 +42,7 @@ jobs:
           cache: true
       - run: flutter build apk --release
       - run: mv build/app/outputs/flutter-apk/app-release.apk RetroHub-android.apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: RetroHub-android
           path: RetroHub-android.apk
@@ -52,7 +52,7 @@ jobs:
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -61,7 +61,7 @@ jobs:
       - name: Empaquetar
         shell: pwsh
         run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath RetroHub-windows.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: RetroHub-windows
           path: RetroHub-windows.zip
@@ -72,7 +72,7 @@ jobs:
     needs: [android, windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
