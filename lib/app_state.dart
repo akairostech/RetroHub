@@ -13,6 +13,8 @@ import 'core/settings.dart';
 import 'net/client.dart';
 import 'net/protocol.dart';
 import 'net/server.dart';
+import 'launch/launcher.dart';
+import 'input/gamepad.dart';
 import 'scrape/igdb.dart';
 import 'scrape/scraper.dart';
 import 'sync/downloader.dart';
@@ -26,6 +28,11 @@ class AppState extends ChangeNotifier {
   late final SaveSync saveSync;
   final downloads = DownloadManager();
   final scraper = Scraper();
+  final launcher = GameLauncher();
+  final gamepad = GamepadService();
+
+  Set<String> favorites = {};
+  List<String> recents = [];
 
   bool ready = false;
   EmuLayout? layout;
@@ -61,6 +68,9 @@ class AppState extends ChangeNotifier {
       hashes: hashes,
     );
     saveSync = SaveSync(hashes);
+    favorites = settings.favorites;
+    recents = settings.recents;
+    gamepad.start();
     downloads.onRomDownloaded = rescan;
 
     if (Platform.isAndroid) {
@@ -179,6 +189,28 @@ class AppState extends ChangeNotifier {
     if (lay == null || games.isEmpty) return;
     await scraper.run(layout: lay, games: games, options: options, igdb: igdbSource());
     await rescan();
+  }
+
+  bool isFavorite(Game g) => favorites.contains(g.key);
+
+  void toggleFavorite(Game g) {
+    favorites = {...favorites};
+    if (!favorites.remove(g.key)) favorites.add(g.key);
+    settings.favorites = favorites;
+    notifyListeners();
+  }
+
+  /// Abre el juego en su emulador. Devuelve un mensaje de error o null.
+  Future<String?> play(Game g) async {
+    final lay = layout;
+    if (lay == null) return 'Configura tu carpeta Emulation en Ajustes.';
+    final err = await launcher.launch(g, lay, settings);
+    if (err == null) {
+      recents = [g.key, ...recents.where((k) => k != g.key)].take(30).toList();
+      settings.recents = recents;
+      notifyListeners();
+    }
+    return err;
   }
 
   bool hasLocal(Game g) =>

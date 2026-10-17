@@ -71,6 +71,18 @@ class AppSettings {
   set igdbClientSecret(String v) => _prefs.setString('igdbClientSecret', v);
   bool get hasIgdb => igdbClientId.isNotEmpty && igdbClientSecret.isNotEmpty;
 
+  /// Comando personalizado para lanzar juegos de una plataforma ({rom}).
+  String launchCommand(String platform) => _prefs.getString('launch.$platform') ?? '';
+  void setLaunchCommand(String platform, String cmd) => cmd.trim().isEmpty
+      ? _prefs.remove('launch.$platform')
+      : _prefs.setString('launch.$platform', cmd.trim());
+
+  // Favoritos y recientes ("plataforma/archivo").
+  Set<String> get favorites => (_prefs.getStringList('favorites') ?? const []).toSet();
+  set favorites(Set<String> v) => _prefs.setStringList('favorites', v.toList());
+  List<String> get recents => _prefs.getStringList('recents') ?? const [];
+  set recents(List<String> v) => _prefs.setStringList('recents', v);
+
   int? get lastSaveSync => _prefs.getInt('lastSaveSync');
   set lastSaveSync(int? v) =>
       v == null ? _prefs.remove('lastSaveSync') : _prefs.setInt('lastSaveSync', v);

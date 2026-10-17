@@ -48,5 +48,19 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Emuladores que RetroHub puede abrir con el botón Jugar -->
+        <package android:name="com.retroarch.aarch64"/>
+        <package android:name="com.retroarch"/>
+        <package android:name="com.retroarch.ra32"/>
+        <package android:name="org.ppsspp.ppsspp"/>
+        <package android:name="org.ppsspp.ppssppgold"/>
+        <package android:name="org.dolphinemu.dolphinemu"/>
+        <package android:name="org.dolphinemu.mmjr"/>
+        <package android:name="xyz.aethersx2.android"/>
+        <package android:name="com.github.stenzek.duckstation"/>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="*/*"/>
+        </intent>
     </queries>
 </manifest>

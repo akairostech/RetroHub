@@ -9,6 +9,15 @@ import '../../core/platforms.dart';
 import '../scrape_widgets.dart';
 import '../theme.dart';
 
+/// Intents para el mando (Y = jugar, X = favorito).
+class PlayGameIntent extends Intent {
+  const PlayGameIntent();
+}
+
+class FavoriteIntent extends Intent {
+  const FavoriteIntent();
+}
+
 /// URL de respaldo en libretro-thumbnails (si ES-DE no tiene la imagen).
 String? libretroCoverUrl(Game g) {
   final sys = platformInfo(g.platform).libretro;
@@ -153,6 +162,9 @@ class GameCard extends StatefulWidget {
   final Map<String, String>? imageHeaders;
   final Widget? badge;
   final VoidCallback? onTap;
+  final VoidCallback? onPlay;
+  final VoidCallback? onFavorite;
+  final bool favorite;
   final bool showPlatform;
   const GameCard({
     super.key,
@@ -160,6 +172,9 @@ class GameCard extends StatefulWidget {
     this.imageHeaders,
     this.badge,
     this.onTap,
+    this.onPlay,
+    this.onFavorite,
+    this.favorite = false,
     this.showPlatform = false,
   });
 
@@ -168,16 +183,38 @@ class GameCard extends StatefulWidget {
 }
 
 class _GameCardState extends State<GameCard> {
-  bool _hover = false;
+  bool _hoverState = false;
+  bool _focused = false;
+  bool get _hover => _hoverState || _focused;
 
   @override
   Widget build(BuildContext context) {
     final g = widget.game;
     final color = platformInfo(g.platform).color;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
+    return FocusableActionDetector(
+      mouseCursor: SystemMouseCursors.click,
+      onShowHoverHighlight: (v) => setState(() => _hoverState = v),
+      onFocusChange: (f) {
+        setState(() => _focused = f);
+        if (f) {
+          Scrollable.ensureVisible(context,
+              alignment: 0.5, duration: const Duration(milliseconds: 150));
+        }
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+          widget.onTap?.call();
+          return null;
+        }),
+        PlayGameIntent: CallbackAction<PlayGameIntent>(onInvoke: (_) {
+          widget.onPlay?.call();
+          return null;
+        }),
+        FavoriteIntent: CallbackAction<FavoriteIntent>(onInvoke: (_) {
+          widget.onFavorite?.call();
+          return null;
+        }),
+      },
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedScale(
@@ -212,6 +249,26 @@ class _GameCardState extends State<GameCard> {
                             providers: coverProviders(g, headers: widget.imageHeaders)),
                         if (widget.badge != null)
                           Positioned(top: 6, right: 6, child: widget.badge!),
+                        if (widget.favorite)
+                          const Positioned(
+                            top: 6,
+                            left: 6,
+                            child: Icon(Icons.star_rounded, color: RetroColors.warn, size: 22,
+                                shadows: [Shadow(color: Colors.black, blurRadius: 6)]),
+                          ),
+                        if (_focused && widget.onPlay != null)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              color: Colors.black.withAlpha(170),
+                              child: const Text('A: detalles   Y: jugar   X: favorito',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -249,15 +306,32 @@ class _GameCardState extends State<GameCard> {
 
 /// Navegador de biblioteca: lista de plataformas + búsqueda + cuadrícula.
 /// Se usa tanto para la biblioteca local como para la del servidor.
+const kFavoritesId = '__fav';
+const kRecentsId = '__recent';
+
+enum GameSort { name, year, genre, size, platform }
+
+const _sortLabels = {
+  GameSort.name: 'Nombre',
+  GameSort.year: 'Año',
+  GameSort.genre: 'Género',
+  GameSort.size: 'Tamaño',
+  GameSort.platform: 'Plataforma',
+};
+
 class GameBrowser extends StatefulWidget {
   final Map<String, List<Game>> library;
   final Widget Function(BuildContext context, Game game) cardBuilder;
   final Widget? headerTrailing;
+  final Set<String> favorites;
+  final List<String> recents;
   const GameBrowser({
     super.key,
     required this.library,
     required this.cardBuilder,
     this.headerTrailing,
+    this.favorites = const {},
+    this.recents = const [],
   });
 
   @override
@@ -267,29 +341,69 @@ class GameBrowser extends StatefulWidget {
 class _GameBrowserState extends State<GameBrowser> {
   String? _platform; // null = todas
   String _query = '';
+  GameSort _sort = GameSort.name;
+
+  Iterable<Game> get _all => widget.library.values.expand((g) => g);
 
   List<Game> get _visible {
-    final source = _platform == null
-        ? widget.library.values.expand((g) => g)
-        : (widget.library[_platform] ?? const <Game>[]);
+    List<Game> source;
+    if (_platform == kFavoritesId) {
+      source = _all.where((g) => widget.favorites.contains(g.key)).toList();
+    } else if (_platform == kRecentsId) {
+      final byKey = {for (final g in _all) g.key: g};
+      source = [for (final k in widget.recents) if (byKey[k] != null) byKey[k]!];
+    } else {
+      source = _platform == null
+          ? _all.toList()
+          : List.of(widget.library[_platform] ?? const <Game>[]);
+    }
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return source.toList();
-    return source
-        .where((g) =>
-            g.title.toLowerCase().contains(q) || g.fileName.toLowerCase().contains(q))
-        .toList();
+    if (q.isNotEmpty) {
+      source = source
+          .where((g) =>
+              g.title.toLowerCase().contains(q) ||
+              g.fileName.toLowerCase().contains(q) ||
+              (g.meta?.developer?.toLowerCase().contains(q) ?? false) ||
+              (g.meta?.genre?.toLowerCase().contains(q) ?? false))
+          .toList();
+    }
+    if (_platform != kRecentsId) source.sort(_compare);
+    return source;
+  }
+
+  int _compare(Game a, Game b) {
+    int byName() => a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    int nullsLast<T extends Comparable>(T? x, T? y) {
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return x.compareTo(y);
+    }
+
+    final r = switch (_sort) {
+      GameSort.name => 0,
+      GameSort.year => nullsLast(a.meta?.year, b.meta?.year),
+      GameSort.genre => nullsLast(a.meta?.genre?.toLowerCase(), b.meta?.genre?.toLowerCase()),
+      GameSort.size => b.size.compareTo(a.size),
+      GameSort.platform => comparePlatforms(a.platform, b.platform),
+    };
+    return r != 0 ? r : byName();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_platform != null && !widget.library.containsKey(_platform)) _platform = null;
+    final validVirtual = (_platform == kFavoritesId && widget.favorites.isNotEmpty) ||
+        (_platform == kRecentsId && widget.recents.isNotEmpty);
+    if (_platform != null && !validVirtual && !widget.library.containsKey(_platform)) {
+      _platform = null;
+    }
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final games = _visible;
 
     final search = TextField(
       onChanged: (v) => setState(() => _query = v),
       decoration: InputDecoration(
-        hintText: 'Buscar juego...',
+        hintText: 'Buscar juego, género o desarrollador...',
         prefixIcon: const Icon(Icons.search_rounded),
         filled: true,
         fillColor: RetroColors.surface,
@@ -301,27 +415,53 @@ class _GameBrowserState extends State<GameBrowser> {
       ),
     );
 
+    final sortButton = PopupMenuButton<GameSort>(
+      tooltip: 'Ordenar',
+      initialValue: _sort,
+      onSelected: (v) => setState(() => _sort = v),
+      itemBuilder: (_) => [
+        for (final e in _sortLabels.entries)
+          PopupMenuItem(value: e.key, child: Text('Ordenar por ${e.value.toLowerCase()}')),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+            color: RetroColors.surface, borderRadius: BorderRadius.circular(12)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.sort_rounded, size: 18),
+          const SizedBox(width: 6),
+          Text(_sortLabels[_sort]!),
+        ]),
+      ),
+    );
+
     final grid = games.isEmpty
-        ? const EmptyState(
-            icon: Icons.search_off_rounded,
-            title: 'Sin resultados',
-            message: 'No hay juegos que coincidan con la búsqueda.')
-        : GridView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: wide ? 190 : 150,
-              mainAxisSpacing: 18,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.62,
+        ? EmptyState(
+            icon: _platform == kFavoritesId ? Icons.star_border_rounded : Icons.search_off_rounded,
+            title: _platform == kFavoritesId ? 'Sin favoritos' : 'Sin resultados',
+            message: _platform == kFavoritesId
+                ? 'Marca juegos con la estrella (o con X en el mando).'
+                : 'No hay juegos que coincidan con la búsqueda.')
+        : FocusTraversalGroup(
+            child: GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: wide ? 190 : 150,
+                mainAxisSpacing: 18,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.62,
+              ),
+              itemCount: games.length,
+              itemBuilder: (context, i) => widget.cardBuilder(context, games[i]),
             ),
-            itemCount: games.length,
-            itemBuilder: (context, i) => widget.cardBuilder(context, games[i]),
           );
 
     final searchRow = Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Row(children: [
         Expanded(child: search),
+        const SizedBox(width: 8),
+        sortButton,
         if (widget.headerTrailing != null) ...[
           const SizedBox(width: 8),
           widget.headerTrailing!,
@@ -329,16 +469,23 @@ class _GameBrowserState extends State<GameBrowser> {
       ]),
     );
 
+    final favCount = _all.where((g) => widget.favorites.contains(g.key)).length;
+    final recentCount = widget.recents.length;
+
     if (wide) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
             width: 240,
-            child: _PlatformList(
-              library: widget.library,
-              selected: _platform,
-              onSelect: (p) => setState(() => _platform = p),
+            child: FocusTraversalGroup(
+              child: _PlatformList(
+                library: widget.library,
+                selected: _platform,
+                favorites: favCount,
+                recents: recentCount,
+                onSelect: (p) => setState(() => _platform = p),
+              ),
             ),
           ),
           Expanded(
@@ -357,7 +504,9 @@ class _GameBrowserState extends State<GameBrowser> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             children: [
-              _chip('Todas', null, widget.library.values.fold(0, (s, g) => s + g.length)),
+              _chip('Todas', null, _all.length),
+              if (favCount > 0) _chip('Favoritos', kFavoritesId, favCount),
+              if (recentCount > 0) _chip('Recientes', kRecentsId, recentCount),
               for (final e in widget.library.entries)
                 _chip(platformInfo(e.key).shortName, e.key, e.value.length),
             ],
@@ -370,14 +519,18 @@ class _GameBrowserState extends State<GameBrowser> {
 
   Widget _chip(String label, String? id, int count) {
     final selected = _platform == id;
-    final color = id == null ? RetroColors.accent : platformInfo(id).color;
+    final virtual = id == null || id == kFavoritesId || id == kRecentsId;
+    final color = virtual ? RetroColors.accent : platformInfo(id!).color;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: ChoiceChip(
         selected: selected,
-        avatar: id == null
-            ? const Icon(Icons.apps_rounded, size: 16)
-            : PlatformIcon(platform: id, size: 16, color: color),
+        avatar: switch (id) {
+          null => const Icon(Icons.apps_rounded, size: 16),
+          kFavoritesId => const Icon(Icons.star_rounded, size: 16, color: RetroColors.warn),
+          kRecentsId => const Icon(Icons.history_rounded, size: 16),
+          final String p => PlatformIcon(platform: p, size: 16, color: color),
+        },
         showCheckmark: false,
         label: Text('$label · $count'),
         selectedColor: color.withAlpha(90),
@@ -390,9 +543,16 @@ class _GameBrowserState extends State<GameBrowser> {
 class _PlatformList extends StatelessWidget {
   final Map<String, List<Game>> library;
   final String? selected;
+  final int favorites;
+  final int recents;
   final ValueChanged<String?> onSelect;
-  const _PlatformList(
-      {required this.library, required this.selected, required this.onSelect});
+  const _PlatformList({
+    required this.library,
+    required this.selected,
+    required this.onSelect,
+    this.favorites = 0,
+    this.recents = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -402,6 +562,10 @@ class _PlatformList extends StatelessWidget {
       children: [
         _tile('Todas las plataformas', 'Biblioteca completa', null, total,
             RetroColors.accent),
+        if (favorites > 0)
+          _tile('Favoritos', 'Tus juegos marcados', kFavoritesId, favorites, RetroColors.warn),
+        if (recents > 0)
+          _tile('Recientes', 'Jugados últimamente', kRecentsId, recents, RetroColors.neon),
         const Padding(
           padding: EdgeInsets.fromLTRB(12, 16, 12, 6),
           child: Text('PLATAFORMAS',
@@ -428,9 +592,12 @@ class _PlatformList extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         border: Border.all(color: color.withAlpha(120)),
       ),
-      child: id == null
-          ? Image.asset('assets/branding/icon.png')
-          : PlatformIcon(platform: id, color: Colors.white),
+      child: switch (id) {
+        null => Image.asset('assets/branding/icon.png'),
+        kFavoritesId => const Icon(Icons.star_rounded, size: 18, color: Colors.white),
+        kRecentsId => const Icon(Icons.history_rounded, size: 18, color: Colors.white),
+        final String p => PlatformIcon(platform: p, color: Colors.white),
+      },
     );
     final sel = selected == id;
     return Padding(

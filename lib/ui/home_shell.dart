@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import '../core/emudeck.dart';
+import '../input/gamepad.dart';
+import 'widgets/game_widgets.dart';
 import 'library_page.dart';
 import 'remote_page.dart';
 import 'saves_page.dart';
@@ -20,6 +25,95 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   _Section _current = _Section.library;
+  StreamSubscription<PadAction>? _padSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _padSub = AppScope.read(context).gamepad.actions.listen(_onPad);
+  }
+
+  @override
+  void dispose() {
+    _padSub?.cancel();
+    super.dispose();
+  }
+
+  /// Traduce el mando a acciones de la interfaz.
+  void _onPad(PadAction a) {
+    if (!mounted) return;
+    // Al usar el mando mostramos siempre el resaltado de foco.
+    FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    final focus = FocusManager.instance.primaryFocus;
+    final ctx = focus?.context;
+    final noFocus = focus == null || ctx == null || focus is FocusScopeNode;
+
+    TraversalDirection? dir = switch (a) {
+      PadAction.up => TraversalDirection.up,
+      PadAction.down => TraversalDirection.down,
+      PadAction.left => TraversalDirection.left,
+      PadAction.right => TraversalDirection.right,
+      _ => null,
+    };
+    if (dir != null) {
+      if (noFocus) {
+        FocusScope.of(context).nextFocus();
+      } else {
+        focus.focusInDirection(dir);
+      }
+      return;
+    }
+    switch (a) {
+      case PadAction.accept:
+        if (noFocus) {
+          FocusScope.of(context).nextFocus();
+        } else {
+          Actions.maybeInvoke(ctx, const ActivateIntent());
+        }
+      case PadAction.back:
+        Navigator.of(context).maybePop();
+      case PadAction.play:
+        if (!noFocus) Actions.maybeInvoke(ctx, const PlayGameIntent());
+      case PadAction.favorite:
+        if (!noFocus) Actions.maybeInvoke(ctx, const FavoriteIntent());
+      case PadAction.prevSection:
+      case PadAction.nextSection:
+        if (Navigator.of(context).canPop()) return; // hay un diálogo abierto
+        final s = _sections;
+        final i = s.indexOf(_current);
+        final step = a == PadAction.nextSection ? 1 : -1;
+        _go(s[(i + step + s.length) % s.length]);
+      case PadAction.menu:
+        _go(_Section.library);
+      default:
+        break;
+    }
+  }
+
+  Widget _wrap(Widget child) => Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: _onKey,
+        child: child,
+      );
+
+  /// Android entrega el mando como teclas.
+  KeyEventResult _onKey(FocusNode node, KeyEvent e) {
+    if (e is! KeyDownEvent) return KeyEventResult.ignored;
+    final action = switch (e.logicalKey) {
+      LogicalKeyboardKey.gameButtonA => PadAction.accept,
+      LogicalKeyboardKey.gameButtonB => PadAction.back,
+      LogicalKeyboardKey.gameButtonY => PadAction.play,
+      LogicalKeyboardKey.gameButtonX => PadAction.favorite,
+      LogicalKeyboardKey.gameButtonLeft1 => PadAction.prevSection,
+      LogicalKeyboardKey.gameButtonRight1 => PadAction.nextSection,
+      LogicalKeyboardKey.gameButtonStart => PadAction.menu,
+      _ => null,
+    };
+    if (action == null) return KeyEventResult.ignored;
+    _onPad(action);
+    return KeyEventResult.handled;
+  }
 
   List<_Section> get _sections => [
         _Section.library,
@@ -76,7 +170,7 @@ class _HomeShellState extends State<HomeShell> {
 
     if (wide) {
       final extended = MediaQuery.sizeOf(context).width >= 1100;
-      return Scaffold(
+      return _wrap(Scaffold(
         body: RetroBackground(
           child: Row(
             children: [
@@ -114,10 +208,10 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
         ),
-      );
+      ));
     }
 
-    return Scaffold(
+    return _wrap(Scaffold(
       body: RetroBackground(child: SafeArea(child: page)),
       bottomNavigationBar: NavigationBar(
         backgroundColor: RetroColors.surface,
@@ -132,7 +226,7 @@ class _HomeShellState extends State<HomeShell> {
             ),
         ],
       ),
-    );
+    ));
   }
 }
 

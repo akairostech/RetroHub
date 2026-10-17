@@ -8,6 +8,7 @@ import '../core/emudeck.dart';
 import '../core/models.dart';
 import '../scrape/scraper.dart';
 import 'scrape_widgets.dart';
+import 'tools_dialogs.dart';
 import 'theme.dart';
 import 'widgets/game_widgets.dart';
 
@@ -59,9 +60,31 @@ class LibraryPage extends StatelessWidget {
     } else {
       body = GameBrowser(
         library: app.library,
+        favorites: app.favorites,
+        recents: app.recents,
         cardBuilder: (context, g) => GameCard(
           game: g,
+          favorite: app.isFavorite(g),
+          onPlay: () => playGame(context, g),
+          onFavorite: () => app.toggleFavorite(g),
           onTap: () => showGameDetails(context, g, actions: [
+            FilledButton.icon(
+              autofocus: true,
+              onPressed: () {
+                Navigator.pop(context);
+                playGame(context, g);
+              },
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Jugar'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                app.toggleFavorite(g);
+                Navigator.pop(context);
+              },
+              icon: Icon(app.isFavorite(g) ? Icons.star_rounded : Icons.star_border_rounded),
+              label: Text(app.isFavorite(g) ? 'Quitar de favoritos' : 'Favorito'),
+            ),
             OutlinedButton.icon(
               onPressed: app.scraper.running
                   ? null
@@ -103,6 +126,26 @@ class LibraryPage extends StatelessWidget {
                 onPressed: app.library.isEmpty ? null : () => showScrapeDialog(context),
                 icon: const Icon(Icons.auto_awesome_rounded),
               ),
+              PopupMenuButton<String>(
+                tooltip: 'Herramientas',
+                icon: const Icon(Icons.handyman_rounded),
+                onSelected: (v) => switch (v) {
+                  'dup' => showDuplicatesDialog(context),
+                  'bios' => showBiosCheckDialog(context),
+                  _ => null,
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                      value: 'dup',
+                      child: ListTile(
+                          leading: Icon(Icons.content_copy_rounded),
+                          title: Text('Buscar duplicados'))),
+                  PopupMenuItem(
+                      value: 'bios',
+                      child: ListTile(
+                          leading: Icon(Icons.memory_rounded), title: Text('Verificar BIOS'))),
+                ],
+              ),
               IconButton(
                 tooltip: 'Volver a escanear',
                 onPressed: app.rescan,
@@ -128,5 +171,21 @@ class LibraryPage extends StatelessWidget {
         await Process.run('xdg-open', [g.isFolder ? path : p.dirname(path)]);
       }
     } catch (_) {}
+  }
+}
+
+/// Abre el juego y muestra un aviso si algo falla.
+Future<void> playGame(BuildContext context, Game g) async {
+  final app = AppScope.read(context);
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(SnackBar(
+      content: Text('Abriendo ${g.title}...'), duration: const Duration(seconds: 2)));
+  final err = await app.play(g);
+  if (err != null) {
+    messenger.showSnackBar(SnackBar(
+      content: Text(err),
+      backgroundColor: RetroColors.danger.withAlpha(230),
+      duration: const Duration(seconds: 6),
+    ));
   }
 }

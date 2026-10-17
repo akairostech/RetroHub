@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../app_state.dart';
 import '../core/app_log.dart';
 import '../core/emudeck.dart';
+import '../core/platforms.dart';
 import '../scrape/igdb.dart';
 import 'theme.dart';
 
@@ -181,13 +182,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              const _LaunchCard(),
+              const SizedBox(height: 12),
               const _IgdbCard(),
               const SizedBox(height: 12),
               const _LogCard(),
               const SizedBox(height: 12),
               const RetroCard(
                 child: Text(
-                  'RetroHub 0.3 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
+                  'RetroHub 0.4 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
                   'Las partidas (saves) se sincronizan en ambos sentidos y nunca se borran: '
                   'antes de reemplazar una se guarda una copia en saves/.retrohub_history.',
                   style: TextStyle(color: RetroColors.textDim, fontSize: 12),
@@ -406,6 +409,54 @@ class _IgdbCardState extends State<_IgdbCard> {
                     style: TextStyle(color: _ok ? RetroColors.ok : RetroColors.danger)),
               ),
           ]),
+        ],
+      ),
+    );
+  }
+}
+
+/// Comandos personalizados para el botón Jugar (opcional).
+class _LaunchCard extends StatelessWidget {
+  const _LaunchCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppScope.of(context);
+    return RetroCard(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ExpansionTile(
+        leading: const Icon(Icons.sports_esports_rounded, color: RetroColors.accent),
+        title: const Text('Emuladores (botón Jugar)',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(
+          Platform.isAndroid
+              ? 'Se abren RetroArch, PPSSPP, Dolphin, NetherSX2 o el emulador que elijas.'
+              : 'Se usa la configuración de ES-DE/EmuDeck. Aquí puedes cambiarla por plataforma.',
+          style: const TextStyle(color: RetroColors.textDim, fontSize: 12),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          const Text(
+            'Deja vacío para usar el emulador automático. Para uno propio escribe el comando '
+            'completo usando {rom} donde va el juego, por ejemplo:\n'
+            '"C:\\Emuladores\\mesen\\Mesen.exe" --fullscreen {rom}',
+            style: TextStyle(color: RetroColors.textDim, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          for (final platform in app.library.keys)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: TextFormField(
+                initialValue: app.settings.launchCommand(platform),
+                enabled: !Platform.isAndroid,
+                decoration: InputDecoration(
+                  isDense: true,
+                  labelText: platformInfo(platform).name,
+                  hintText: 'Automático',
+                ),
+                onChanged: (v) => app.settings.setLaunchCommand(platform, v),
+              ),
+            ),
         ],
       ),
     );
