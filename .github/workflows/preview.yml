@@ -1,0 +1,23 @@
+name: Preview
+on:
+  push:
+    branches: ['preview/**']
+permissions:
+  contents: write
+jobs:
+  shot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter test --update-goldens test/preview/
+      - run: |
+          git config user.name ci; git config user.email ci@x
+          git checkout --orphan preview-out
+          git rm -rfq --cached .
+          git add -f test/preview/box_preview.png
+          git commit -qm shot
+          git push -f origin preview-out
