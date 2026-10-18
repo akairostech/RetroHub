@@ -28,7 +28,7 @@ class GameBox3D extends StatelessWidget {
     super.key,
     required this.game,
     required this.providers,
-    this.angle = -0.5,
+    this.angle = -0.6,
     this.highlight = false,
     this.overlays = const [],
   });
@@ -42,13 +42,13 @@ class GameBox3D extends StatelessWidget {
       // y a la perspectiva.
       final w = maxW * 0.82;
       final h = maxH * 0.92;
-      final d = w * 0.15; // grosor de la caja
+      final d = w * 0.17; // grosor de la caja
       final top = (maxH - h) / 2;
       final left = (maxW - w) / 2 + d * 0.35;
 
       final pivot = Offset(left + w / 2, top + h / 2);
       Matrix4 face(Matrix4 local) => Matrix4.translationValues(pivot.dx, pivot.dy, 0)
-        ..multiply(Matrix4.identity()..setEntry(3, 2, 0.9 / maxW))
+        ..multiply(Matrix4.identity()..setEntry(3, 2, 0.3 / maxW))
         ..multiply(Matrix4.rotationY(angle))
         ..multiply(Matrix4.translationValues(-pivot.dx, -pivot.dy, 0))
         ..multiply(local);
@@ -245,7 +245,7 @@ class RotatableGameBox extends StatefulWidget {
 
 class _RotatableGameBoxState extends State<RotatableGameBox>
     with SingleTickerProviderStateMixin {
-  double _angle = -0.55;
+  double _angle = -0.65;
   late final AnimationController _settle =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
   Animation<double>? _back;
@@ -273,7 +273,7 @@ class _RotatableGameBoxState extends State<RotatableGameBox>
         onHorizontalDragUpdate: (e) =>
             setState(() => _angle = (_angle + e.delta.dx * 0.012).clamp(-1.3, 0.4)),
         onHorizontalDragEnd: (_) {
-          _back = Tween(begin: _angle, end: -0.55)
+          _back = Tween(begin: _angle, end: -0.65)
               .animate(CurvedAnimation(parent: _settle, curve: Curves.easeOutBack));
           _settle.forward(from: 0);
         },

@@ -229,7 +229,7 @@ class _GameCardState extends State<GameCard> {
                   valueListenable: boxArt3dEnabled,
                   builder: (context, box3d, _) => box3d
                       ? TweenAnimationBuilder<double>(
-                          tween: Tween(end: _hover ? -0.16 : -0.5),
+                          tween: Tween(end: _hover ? -0.3 : -0.6),
                           duration: const Duration(milliseconds: 260),
                           curve: Curves.easeOutCubic,
                           builder: (context, a, _) => GameBox3D(

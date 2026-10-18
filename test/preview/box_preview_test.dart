@@ -22,7 +22,7 @@ void main() {
           padding: const EdgeInsets.all(30),
           child: Column(children: [
             Row(children: [
-              for (final a in [-1.2, -0.5, -0.16, 0.0, 0.4])
+              for (final a in [-1.2, -0.6, -0.3, 0.0, 0.4])
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: SizedBox(
