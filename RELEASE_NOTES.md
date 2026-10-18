@@ -6,7 +6,13 @@
 | Android | `RetroHub-android.apk` | Ábrelo en el teléfono (permite instalar apps de origen desconocido) |
 | Linux / SteamOS | `RetroHub-linux-x64.tar.gz` | Descomprime y ejecuta `install-desktop-entry.sh` |
 
-## Novedades de la 0.5
+## Novedades de la 0.5.1
+
+- **Actualizar.** Nueva sección que busca la última versión publicada en GitHub, muestra sus novedades y la instala con un botón. En Windows y Linux RetroHub se cierra, se actualiza y vuelve a abrirse solo; en Android abre el instalador. Un punto en la barra lateral avisa cuando hay versión nueva (se puede desactivar).
+- **Carátulas 3D.** Cada juego se muestra como una caja 3D con lomo del color de la consola, su ícono y el título. La caja gira al pasar el mouse o al seleccionarla con el mando, y en los detalles puedes girarla arrastrando. Se puede volver a la imagen plana en Ajustes → Carátulas 3D.
+- El APK de Android ahora puede firmarse con una clave fija, para que cada versión se instale encima de la anterior.
+
+## En la 0.5
 
 - **Crear biblioteca.** Si RetroHub no encuentra una biblioteca, te ofrece crearla con todas las carpetas: `roms/{plataforma}` para cada consola, `bios`, `saves` y las carpetas de imágenes. También completa las carpetas que falten en una biblioteca existente, sin tocar nada de lo que ya tienes.
 - RetroHub ahora usa sus propios nombres en toda la aplicación; la compatibilidad con bibliotecas y emuladores ya instalados se mantiene.

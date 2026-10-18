@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -26,6 +27,14 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "retro_hub/update")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "installApk") {
+                    result.success(installApk(call.argument<String>("path")!!))
+                } else {
+                    result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "retro_hub/launch")
             .setMethodCallHandler { call, result ->
                 if (call.method == "launch") {
@@ -126,6 +135,31 @@ class MainActivity : FlutterActivity() {
             return null
         } catch (e: Exception) {
             return "No se pudo abrir $name: ${e.message}"
+        }
+    }
+
+    /** Abre el instalador de Android con el APK descargado. */
+    private fun installApk(path: String): String? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                !packageManager.canRequestPackageInstalls()
+            ) {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:$packageName")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                return "Permite \"Instalar apps desconocidas\" para RetroHub, vuelve y toca Instalar otra vez."
+            }
+            val uri = FileProvider.getUriForFile(this, "$packageName.updates", File(path))
+            val intent = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            null
+        } catch (e: Exception) {
+            "No se pudo abrir el instalador: ${e.message}"
         }
     }
 }

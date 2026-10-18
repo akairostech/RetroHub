@@ -29,11 +29,28 @@ android {
         versionName = flutter.versionName
     }
 
+    // Firma estable para que cada versión se pueda instalar encima de la anterior.
+    // GitHub Actions la crea desde los secretos ANDROID_KEYSTORE_BASE64 y
+    // ANDROID_KEYSTORE_PASSWORD. Sin ellos se usa la firma de depuración.
+    val releaseKeystore = System.getenv("RETROHUB_KEYSTORE")?.let { file(it) }
+    signingConfigs {
+        if (releaseKeystore != null && releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("RETROHUB_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RETROHUB_KEY_ALIAS") ?: "retrohub"
+                keyPassword = System.getenv("RETROHUB_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseKeystore != null && releaseKeystore.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
@@ -46,4 +63,9 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // FileProvider para instalar actualizaciones.
+    implementation("androidx.core:core-ktx:1.13.1")
 }

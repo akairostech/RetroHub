@@ -83,6 +83,13 @@ class AppSettings {
   List<String> get recents => _prefs.getStringList('recents') ?? const [];
   set recents(List<String> v) => _prefs.setStringList('recents', v);
 
+  bool get autoCheckUpdates => _prefs.getBool('autoCheckUpdates') ?? true;
+  set autoCheckUpdates(bool v) => _prefs.setBool('autoCheckUpdates', v);
+
+  /// Mostrar las carátulas como cajas 3D.
+  bool get boxArt3d => _prefs.getBool('boxArt3d') ?? true;
+  set boxArt3d(bool v) => _prefs.setBool('boxArt3d', v);
+
   int? get lastSaveSync => _prefs.getInt('lastSaveSync');
   set lastSaveSync(int? v) =>
       v == null ? _prefs.remove('lastSaveSync') : _prefs.setInt('lastSaveSync', v);

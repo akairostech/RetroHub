@@ -10,7 +10,9 @@ import '../core/app_log.dart';
 import '../core/layout.dart';
 import '../core/platforms.dart';
 import '../scrape/igdb.dart';
+import '../version.dart';
 import 'setup_dialog.dart';
+import 'widgets/box_art.dart';
 import 'theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -194,6 +196,24 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              RetroCard(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: boxArt3dEnabled,
+                  builder: (context, on, _) => SwitchListTile(
+                    secondary: const Icon(Icons.view_in_ar_rounded),
+                    title: const Text('Carátulas 3D'),
+                    subtitle: const Text(
+                        'Muestra cada juego como una caja 3D con lomo. Desactívalo para ver la imagen plana.'),
+                    value: on,
+                    onChanged: (v) {
+                      app.settings.boxArt3d = v;
+                      boxArt3dEnabled.value = v;
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               const _LaunchCard(),
               const SizedBox(height: 12),
               const _IgdbCard(),
@@ -202,7 +222,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 12),
               const RetroCard(
                 child: Text(
-                  'RetroHub 0.5 · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
+                  'RetroHub $kAppVersion · Las ROMs y BIOS solo se descargan del servidor a los clientes. '
                   'Las partidas (saves) se sincronizan en ambos sentidos y nunca se borran: '
                   'antes de reemplazar una se guarda una copia en saves/.retrohub_history.',
                   style: TextStyle(color: RetroColors.textDim, fontSize: 12),
