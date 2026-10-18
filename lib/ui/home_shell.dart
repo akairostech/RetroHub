@@ -12,9 +12,10 @@ import 'remote_page.dart';
 import 'saves_page.dart';
 import 'server_page.dart';
 import 'settings_page.dart';
+import 'update_page.dart';
 import 'theme.dart';
 
-enum _Section { library, remote, saves, server, settings }
+enum _Section { library, remote, saves, server, update, settings }
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -120,6 +121,7 @@ class _HomeShellState extends State<HomeShell> {
         _Section.remote,
         _Section.saves,
         if (isDesktop) _Section.server,
+        _Section.update,
         _Section.settings,
       ];
 
@@ -128,16 +130,25 @@ class _HomeShellState extends State<HomeShell> {
         _Section.remote => (Icons.cloud_download_outlined, Icons.cloud_download_rounded, 'Descargar'),
         _Section.saves => (Icons.save_outlined, Icons.save_rounded, 'Partidas'),
         _Section.server => (Icons.dns_outlined, Icons.dns_rounded, 'Servidor'),
+        _Section.update => (Icons.system_update_outlined, Icons.system_update_rounded, 'Actualizar'),
         _Section.settings => (Icons.settings_outlined, Icons.settings_rounded, 'Ajustes'),
       };
 
   void _go(_Section s) => setState(() => _current = s);
+
+  /// Ícono de la barra con un punto si hay una actualización disponible.
+  Widget _navIcon(_Section s, IconData icon) {
+    final app = AppScope.of(context);
+    final show = s == _Section.update && app.updater.updateAvailable;
+    return Badge(isLabelVisible: show, backgroundColor: RetroColors.neon, child: Icon(icon));
+  }
 
   Widget _page() => switch (_current) {
         _Section.library => LibraryPage(onOpenSettings: () => _go(_Section.settings)),
         _Section.remote => const RemotePage(),
         _Section.saves => SavesPage(onOpenRemote: () => _go(_Section.remote)),
         _Section.server => const ServerPage(),
+        _Section.update => const UpdatePage(),
         _Section.settings => const SettingsPage(),
       };
 
@@ -197,8 +208,8 @@ class _HomeShellState extends State<HomeShell> {
                 destinations: [
                   for (final s in sections)
                     NavigationRailDestination(
-                      icon: Icon(_meta(s).$1),
-                      selectedIcon: Icon(_meta(s).$2),
+                      icon: _navIcon(s, _meta(s).$1),
+                      selectedIcon: _navIcon(s, _meta(s).$2),
                       label: Text(_meta(s).$3),
                     ),
                 ],
@@ -220,8 +231,8 @@ class _HomeShellState extends State<HomeShell> {
         destinations: [
           for (final s in sections)
             NavigationDestination(
-              icon: Icon(_meta(s).$1),
-              selectedIcon: Icon(_meta(s).$2),
+              icon: _navIcon(s, _meta(s).$1),
+              selectedIcon: _navIcon(s, _meta(s).$2),
               label: _meta(s).$3,
             ),
         ],

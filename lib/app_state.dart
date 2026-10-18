@@ -15,6 +15,8 @@ import 'net/protocol.dart';
 import 'net/server.dart';
 import 'launch/launcher.dart';
 import 'input/gamepad.dart';
+import 'update/updater.dart';
+import 'ui/widgets/box_art.dart';
 import 'scrape/igdb.dart';
 import 'scrape/scraper.dart';
 import 'sync/downloader.dart';
@@ -30,6 +32,7 @@ class AppState extends ChangeNotifier {
   final scraper = Scraper();
   final launcher = GameLauncher();
   final gamepad = GamepadService();
+  final updater = Updater();
 
   Set<String> favorites = {};
   List<String> recents = [];
@@ -98,6 +101,12 @@ class AppState extends ChangeNotifier {
 
     ready = true;
     notifyListeners();
+
+    boxArt3dEnabled.value = settings.boxArt3d;
+    if (settings.autoCheckUpdates) {
+      // En segundo plano; avisa en la barra lateral si hay versión nueva.
+      updater.check().then((_) => notifyListeners());
+    }
 
     if (layout != null) await rescan();
     if (isDesktop && settings.autoStartServer) {
@@ -190,6 +199,9 @@ class AppState extends ChangeNotifier {
     await scraper.run(layout: lay, games: games, options: options, igdb: igdbSource());
     await rescan();
   }
+
+  /// Fuerza a redibujar las pantallas que dependen del estado.
+  void refresh() => notifyListeners();
 
   bool isFavorite(Game g) => favorites.contains(g.key);
 

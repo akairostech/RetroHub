@@ -8,6 +8,7 @@ import '../../core/models.dart';
 import '../../core/platforms.dart';
 import '../scrape_widgets.dart';
 import '../theme.dart';
+import 'box_art.dart';
 
 /// Intents para el mando (Y = jugar, X = favorito).
 class PlayGameIntent extends Intent {
@@ -224,54 +225,22 @@ class _GameCardState extends State<GameCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: _hover ? color : RetroColors.outline, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (_hover ? color : Colors.black).withAlpha(_hover ? 90 : 60),
-                        blurRadius: _hover ? 18 : 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(color: RetroColors.surfaceHigh),
-                        CoverImage(
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: boxArt3dEnabled,
+                  builder: (context, box3d, _) => box3d
+                      ? TweenAnimationBuilder<double>(
+                          tween: Tween(end: _hover ? -0.3 : -0.6),
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, a, _) => GameBox3D(
                             game: g,
-                            providers: coverProviders(g, headers: widget.imageHeaders)),
-                        if (widget.badge != null)
-                          Positioned(top: 6, right: 6, child: widget.badge!),
-                        if (widget.favorite)
-                          const Positioned(
-                            top: 6,
-                            left: 6,
-                            child: Icon(Icons.star_rounded, color: RetroColors.warn, size: 22,
-                                shadows: [Shadow(color: Colors.black, blurRadius: 6)]),
+                            providers: coverProviders(g, headers: widget.imageHeaders),
+                            angle: a,
+                            highlight: _hover,
+                            overlays: _overlays(),
                           ),
-                        if (_focused && widget.onPlay != null)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              color: Colors.black.withAlpha(170),
-                              child: const Text('A: detalles   Y: jugar   X: favorito',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                        )
+                      : _flatCover(g, color),
                 ),
               ),
               const SizedBox(height: 8),
@@ -302,6 +271,56 @@ class _GameCardState extends State<GameCard> {
       ),
     );
   }
+
+  List<Widget> _overlays() => [
+        if (widget.badge != null) Positioned(top: 6, right: 6, child: widget.badge!),
+        if (widget.favorite)
+          const Positioned(
+            top: 6,
+            left: 6,
+            child: Icon(Icons.star_rounded, color: RetroColors.warn, size: 22,
+                shadows: [Shadow(color: Colors.black, blurRadius: 6)]),
+          ),
+        if (_focused && widget.onPlay != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: Colors.black.withAlpha(170),
+              child: const Text('A: detalles   Y: jugar   X: favorito',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+            ),
+          ),
+      ];
+
+  Widget _flatCover(Game g, Color color) => AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _hover ? color : RetroColors.outline, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: (_hover ? color : Colors.black).withAlpha(_hover ? 90 : 60),
+              blurRadius: _hover ? 18 : 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(11),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(color: RetroColors.surfaceHigh),
+              CoverImage(game: g, providers: coverProviders(g, headers: widget.imageHeaders)),
+              ..._overlays(),
+            ],
+          ),
+        ),
+      );
 }
 
 /// Navegador de biblioteca: lista de plataformas + búsqueda + cuadrícula.
@@ -662,17 +681,25 @@ Future<void> showGameDetails(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: MediaQuery.sizeOf(context).width < 500 ? 100 : 150,
-                height: MediaQuery.sizeOf(context).width < 500 ? 140 : 210,
-                child: CoverImage(
-                    game: game,
-                    providers: coverProviders(game, headers: imageHeaders),
-                    fit: BoxFit.cover),
+            if (boxArt3dEnabled.value)
+              SizedBox(
+                width: MediaQuery.sizeOf(context).width < 500 ? 130 : 200,
+                height: MediaQuery.sizeOf(context).width < 500 ? 170 : 260,
+                child: RotatableGameBox(
+                    game: game, providers: coverProviders(game, headers: imageHeaders)),
+              )
+            else
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: MediaQuery.sizeOf(context).width < 500 ? 100 : 150,
+                  height: MediaQuery.sizeOf(context).width < 500 ? 140 : 210,
+                  child: CoverImage(
+                      game: game,
+                      providers: coverProviders(game, headers: imageHeaders),
+                      fit: BoxFit.cover),
+                ),
               ),
-            ),
             const SizedBox(width: 20),
             Expanded(
               child: Column(

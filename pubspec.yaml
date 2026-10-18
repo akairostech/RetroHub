@@ -1,7 +1,7 @@
 name: retro_hub
 description: Gestor de ROMs retro con servidor local, descargas entre dispositivos y sincronización de partidas guardadas.
 publish_to: 'none'
-version: 0.5.0+5
+version: 0.5.1+6
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
